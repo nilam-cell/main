@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Remuxer</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f5f4;
+    --surface: #ffffff;
+    --border: #e2e2df;
+    --border-strong: #c8c8c4;
+    --text: #1a1a18;
+    --text-muted: #6b6b67;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --ok: #16a34a;
+    --warn: #ca8a04;
+    --err: #dc2626;
+    --radius: 10px;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 40px 16px 80px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .frame { max-width: 560px; margin: 0 auto; }
+
+  /* header */
+  header { margin-bottom: 28px; }
+  header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+  header p  { color: var(--text-muted); margin-top: 4px; font-size: 13px; }
+
+  /* drop zone */
+  .dropzone {
+    border: 2px dashed var(--border-strong);
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    margin-bottom: 14px;
+  }
+  .dropzone.drag { border-color: var(--accent); background: #eff6ff; }
+  .dz-icon { font-size: 28px; margin-bottom: 10px; }
+  .dz-title { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+  .dz-sub { color: var(--text-muted); font-size: 13px; }
+  .link-btn {
+    background: none; border: none; color: var(--accent);
+    font: inherit; cursor: pointer; text-decoration: underline; padding: 0;
+  }
+
+  /* card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 12px;
+  }
+  .card.hidden { display: none; }
+  .card.danger { border-color: #fca5a5; background: #fff5f5; }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* ghost btn */
+  .ghost-btn {
+    font: inherit;
+    font-size: 12px;
+    background: none;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    color: var(--text-muted);
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+  .ghost-btn:hover { background: var(--bg); color: var(--text); }
+
+  /* file meta */
+  .file-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    align-items: center;
+  }
+  .file-meta .tag {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-weight: 500;
+    color: var(--text);
+    font-size: 11px;
+    text-transform: uppercase;
+  }
+
+  /* stream list */
+  .stream-list { display: flex; flex-direction: column; gap: 6px; }
+  .stream-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    background: var(--bg);
+    border-radius: 7px;
+    font-size: 13px;
+  }
+  .s-idx { color: var(--text-muted); font-size: 11px; min-width: 18px; }
+  .s-type {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .s-type.video    { background: #dbeafe; color: #1d4ed8; }
+  .s-type.audio    { background: #ede9fe; color: #6d28d9; }
+  .s-type.subtitle { background: #fef9c3; color: #92400e; }
+  .s-detail { flex: 1; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .s-detail .extra { color: var(--text-muted); }
+  .s-compat { font-size: 11px; font-weight: 500; flex-shrink: 0; }
+  .s-compat.ok   { color: var(--ok); }
+  .s-compat.warn { color: var(--warn); }
+  .s-compat.drop { color: var(--err); }
+
+  /* progress */
+  .progress-row { display: flex; align-items: center; gap: 10px; }
+  .bar {
+    flex: 1;
+    height: 5px;
+    background: var(--bg);
+    border-radius: 99px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .bar-fill {
+    height: 100%; width: 0%; background: var(--accent);
+    transition: width .2s ease;
+    border-radius: 99px;
+  }
+  .status-text { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent); flex-shrink: 0;
+    animation: pulse 1.1s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:.3} 50%{opacity:1} }
+
+  /* format pills */
+  .stamps { display: flex; flex-wrap: wrap; gap: 8px; }
+  .stamp {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    background: var(--bg);
+    border: 1.5px solid var(--border-strong);
+    border-radius: 7px;
+    color: var(--text-muted);
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all .12s;
+  }
+  .stamp:hover { border-color: var(--accent); color: var(--accent); }
+  .stamp.selected { border-color: var(--accent); color: var(--accent); background: #eff6ff; }
+
+  /* convert btn */
+  .convert-btn {
+    width: 100%;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 11px;
+    cursor: pointer;
+    transition: background .12s;
+    margin-bottom: 10px;
+  }
+  .convert-btn:hover:not(:disabled) { background: var(--accent-hover); }
+  .convert-btn:disabled { background: var(--border-strong); color: var(--text-muted); cursor: not-allowed; }
+
+  /* output */
+  .output-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .output-cell { background: var(--bg); border-radius: 7px; padding: 10px 12px; }
+  .output-cell .label { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--text-muted); margin-bottom: 2px; }
+  .output-cell .value { font-size: 13px; font-weight: 500; word-break: break-all; }
+  .download-btn {
+    display: block;
+    text-align: center;
+    background: var(--ok);
+    color: #fff;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background .12s;
+  }
+  .download-btn:hover { background: #15803d; }
+
+  /* error */
+  #errorText { font-size: 13px; color: var(--err); line-height: 1.6; white-space: pre-wrap; }
+
+  /* log */
+  .log-wrap { margin-top: 8px; }
+  .log-wrap summary { font-size: 12px; color: var(--text-muted); cursor: pointer; padding: 6px 0; user-select: none; }
+  .log-output {
+    background: #111;
+    color: #86efac;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    padding: 12px;
+    border-radius: 7px;
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin-top: 6px;
+  }
+
+  footer { text-align: center; color: var(--text-muted); font-size: 12px; margin-top: 28px; }
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <header>
+    <h1>Remuxer</h1>
+    <p>Change container format without re-encoding — runs entirely in your browser.</p>
+  </header>
+
+  <section id="dropzone" class="dropzone">
+    <input type="file" id="fileInput" hidden accept="video/*">
+    <div class="dz-icon">📦</div>
+    <p class="dz-title">Drop a video file here</p>
+    <p class="dz-sub">or <button id="browseBtn" class="link-btn" type="button">browse your files</button></p>
+  </section>
+
+  <!-- loading -->
+  <div id="loadingPanel" class="card hidden">
+    <div class="progress-row">
+      <div class="bar"><div id="loadingBar" class="bar-fill"></div></div>
+    </div>
+    <p class="status-text" style="margin-top:8px;"><span class="dot"></span><span id="loadingText">Loading ffmpeg…</span></p>
+  </div>
+
+  <!-- file info + streams -->
+  <div id="manifestPanel" class="card hidden">
+    <div class="card-header">
+      <span class="card-title">Streams</span>
+      <button id="resetBtn" class="ghost-btn" type="button">New file</button>
+    </div>
+    <div class="file-meta">
+      <span id="fileName"></span>
+      <span id="fileSize" class="tag"></span>
+      <span id="fileContainer" class="tag"></span>
+    </div>
+    <div id="streamList" class="stream-list"></div>
+  </div>
+
+  <!-- target format -->
+  <div id="destPanel" class="card hidden">
+    <div class="card-header" style="margin-bottom:12px;">
+      <span class="card-title">Output format</span>
+    </div>
+    <div id="targetStamps" class="stamps"></div>
+  </div>
+
+  <!-- action -->
+  <div id="actionPanel" class="card hidden">
+    <button id="transferBtn" class="convert-btn" type="button">Convert</button>
+    <div class="progress-row">
+      <div class="bar"><div id="remuxBar" class="bar-fill"></div></div>
+    </div>
+    <p id="remuxStatus" class="status-text" style="margin-top:8px;"></p>
+  </div>
+
+  <!-- output -->
+  <div id="outputPanel" class="card hidden">
+    <div class="card-header"><span class="card-title">Done</span></div>
+    <div class="output-grid">
+      <div class="output-cell"><div class="label">File</div><div class="value" id="outName"></div></div>
+      <div class="output-cell"><div class="label">Size</div><div class="value" id="outSize"></div></div>
+      <div class="output-cell"><div class="label">Format</div><div class="value" id="outContainer"></div></div>
+    </div>
+    <a id="downloadBtn" class="download-btn" download>Download</a>
+  </div>
+
+  <!-- error -->
+  <div id="errorPanel" class="card danger hidden">
+    <div class="card-header"><span class="card-title" style="color:var(--err);">Error</span></div>
+    <p id="errorText"></p>
+  </div>
+
+  <details class="log-wrap">
+    <summary>FFmpeg log</summary>
+    <pre id="logOutput" class="log-output"></pre>
+  </details>
+
+  <footer>Files never leave your browser &nbsp;·&nbsp; No re-encoding</footer>
+</div>
+
+<script type="module">
+import { toBlobURL, fetchFile } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12/dist/esm/index.js';
+
+// ---------- container knowledge base ----------
+const CONTAINERS = {
+  mkv:  { label:'MKV',  fmt:'matroska', mime:'video/x-matroska', video:'*', audio:'*', subsNative:'*', subsConvert:null },
+  mp4:  { label:'MP4',  fmt:'mp4',      mime:'video/mp4',        video:['h264','hevc','mpeg4','av1','vp9'], audio:['aac','mp3','ac3','eac3','alac'], subsNative:['mov_text'], subsConvert:'mov_text' },
+  mov:  { label:'MOV',  fmt:'mov',      mime:'video/quicktime',  video:['h264','hevc','mpeg4','prores','dnxhd'], audio:['aac','pcm_s16le','alac','ac3'], subsNative:['mov_text'], subsConvert:'mov_text' },
+  webm: { label:'WEBM', fmt:'webm',     mime:'video/webm',       video:['vp8','vp9','av1'], audio:['opus','vorbis'], subsNative:['webvtt'], subsConvert:null },
+  avi:  { label:'AVI',  fmt:'avi',      mime:'video/x-msvideo',  video:['h264','mpeg4','mjpeg','mpeg2video'], audio:['mp3','ac3','pcm_s16le'], subsNative:[], subsConvert:null },
+  ts:   { label:'TS',   fmt:'mpegts',   mime:'video/mp2t',       video:['h264','hevc','mpeg2video'], audio:['aac','mp3','ac3'], subsNative:[], subsConvert:null },
+  flv:  { label:'FLV',  fmt:'flv',      mime:'video/x-flv',      video:['h264'], audio:['aac','mp3'], subsNative:[], subsConvert:null },
+};
+const TARGET_ORDER = ['mkv','mp4','mov','webm','avi','ts','flv'];
+
+// ---------- state ----------
+let core = null;
+let coreLoaded = false;
+let logBuffer = [];
+let currentFile = null;
+let sourceExt = '';
+let streams = [];        // {idx, type, codec, lang, detail}
+let durationSec = 0;
+let selectedTarget = 'mkv';
+let isRemuxing = false;
+
+// ---------- dom ----------
+const el = id => document.getElementById(id);
+const dropzone = el('dropzone');
+const fileInput = el('fileInput');
+const browseBtn = el('browseBtn');
+const loadingPanel = el('loadingPanel');
+const loadingText = el('loadingText');
+const loadingBar = el('loadingBar');
+const manifestPanel = el('manifestPanel');
+const fileNameEl = el('fileName');
+const fileSizeEl = el('fileSize');
+const fileContainerEl = el('fileContainer');
+const streamListEl = el('streamList');
+const destPanel = el('destPanel');
+const targetStampsEl = el('targetStamps');
+const actionPanel = el('actionPanel');
+const transferBtn = el('transferBtn');
+const remuxBar = el('remuxBar');
+const remuxStatus = el('remuxStatus');
+const outputPanel = el('outputPanel');
+const outName = el('outName');
+const outSize = el('outSize');
+const outContainer = el('outContainer');
+const downloadBtn = el('downloadBtn');
+const errorPanel = el('errorPanel');
+const errorText = el('errorText');
+const logOutput = el('logOutput');
+const resetBtn = el('resetBtn');
+
+function show(node){ node.classList.remove('hidden'); }
+function hide(node){ node.classList.add('hidden'); }
+
+function appendLog(line){
+  logBuffer.push(line);
+  if (logBuffer.length > 600) logBuffer.shift();
+  logOutput.textContent += line + '\n';
+  logOutput.scrollTop = logOutput.scrollHeight;
+}
+
+function fmtBytes(n){
+  if (n < 1024) return n + ' B';
+  const units = ['KB','MB','GB'];
+  let u = -1;
+  do { n /= 1024; u++; } while (n >= 1024 && u < units.length - 1);
+  return n.toFixed(1) + ' ' + units[u];
+}
+
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+// ---------- ffmpeg-core loading (main thread, no Worker) ----------
+// We deliberately bypass the @ffmpeg/ffmpeg wrapper, which insists on spawning
+// its own dedicated Worker. Sandboxed/opaque-origin pages (origin "null") are
+// not permitted to construct a Worker from a cross-origin script at all, and
+// that script has further internal relative imports that break once isolated
+// into a blob. ffmpeg-core's factory function runs fine on the main thread —
+// it's literally what executes inside that worker — so we call it directly.
+const CORE_BASE = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12/dist/esm';
+
+async function initCore(){
+  if (coreLoaded) return;
+  show(loadingPanel);
+  loadingText.textContent = 'Fetching ffmpeg core (~30 MB, first time only)…';
+  loadingBar.style.width = '15%';
+  try {
+    const coreScriptURL = `${CORE_BASE}/ffmpeg-core.js`;
+    const mod = await import(coreScriptURL);
+    loadingBar.style.width = '55%';
+    const wasmBlobURL = await toBlobURL(`${CORE_BASE}/ffmpeg-core.wasm`, 'application/wasm');
+    loadingBar.style.width = '85%';
+    core = await mod.default({
+      mainScriptUrlOrBlob: `${coreScriptURL}#${btoa(JSON.stringify({ wasmURL: wasmBlobURL }))}`,
+    });
+    core.setLogger((d) => appendLog(d && d.message != null ? d.message : String(d)));
+    if (typeof core.setTimeout === 'function') core.setTimeout(-1);
+    loadingBar.style.width = '100%';
+    coreLoaded = true;
+    setTimeout(() => hide(loadingPanel), 250);
+  } catch (err) {
+    loadingText.textContent = 'Could not load ffmpeg core — check your network/CDN access.';
+    appendLog('[init error] ' + (err && err.message ? err.message : String(err)));
+    throw err;
+  }
+}
+
+function runCore(args){
+  core.exec(...args);
+  const ret = core.ret;
+  core.reset();
+  return ret;
+}
+
+// ---------- probing ----------
+function parseProbeLogs(lines){
+  const text = lines.join('\n');
+  const durMatch = text.match(/Duration:\s*(\d{2}):(\d{2}):(\d{2}\.\d+)/);
+  durationSec = durMatch ? (+durMatch[1]*3600 + +durMatch[2]*60 + parseFloat(durMatch[3])) : 0;
+
+  const parsed = [];
+  const streamRe = /Stream #0:(\d+)(?:\[0x[0-9a-fA-F]+\])?(?:\(([a-zA-Z]+)\))?:\s*(Video|Audio|Subtitle|Data):\s*([a-zA-Z0-9_]+)([^\n]*)/g;
+  let m;
+  while ((m = streamRe.exec(text)) !== null) {
+    const [, idx, lang, type, codec, rest] = m;
+    if (type === 'Data') continue;
+    let detail = '';
+    if (type === 'Video') {
+      const res = rest.match(/(\d{2,5})x(\d{2,5})/);
+      const fps = rest.match(/([\d.]+)\s*fps/);
+      detail = [res ? res[0] : null, fps ? fps[1] + ' fps' : null].filter(Boolean).join(' · ');
+    } else if (type === 'Audio') {
+      const hz = rest.match(/(\d+)\s*Hz/);
+      const ch = rest.match(/\b(mono|stereo|[\d.]+\(?[a-z]*\)?\s*channels?)\b/i);
+      detail = [hz ? hz[1] + ' Hz' : null, ch ? ch[0] : null].filter(Boolean).join(' · ');
+    }
+    if (lang) detail = detail ? `${detail} · ${lang}` : lang;
+    parsed.push({ idx: +idx, type: type.toLowerCase(), codec, detail });
+  }
+  streams = parsed;
+}
+
+function probeFile(name){
+  const start = logBuffer.length;
+  try { runCore(['-i', name]); } catch (e) { /* expected: no output specified */ }
+  return logBuffer.slice(start);
+}
+
+// ---------- compatibility ----------
+function compatFor(stream, targetKey){
+  const c = CONTAINERS[targetKey];
+  if (stream.type === 'video') {
+    if (c.video === '*' || c.video.includes(stream.codec)) return { state:'ok', label:'COPY' };
+    return { state:'warn', label:'UNTESTED' };
+  }
+  if (stream.type === 'audio') {
+    if (c.audio === '*' || c.audio.includes(stream.codec)) return { state:'ok', label:'COPY' };
+    return { state:'warn', label:'UNTESTED' };
+  }
+  if (stream.type === 'subtitle') {
+    if (c.subsNative === '*' || c.subsNative.includes(stream.codec)) return { state:'ok', label:'COPY' };
+    if (c.subsConvert) return { state:'warn', label:'→ ' + c.subsConvert.toUpperCase() };
+    return { state:'drop', label:'DROPPED' };
+  }
+  return { state:'warn', label:'?' };
+}
+
+// ---------- rendering ----------
+function renderManifest(){
+  fileNameEl.textContent = currentFile.name;
+  fileSizeEl.textContent = fmtBytes(currentFile.size);
+  fileContainerEl.textContent = sourceExt || 'unknown';
+
+  streamListEl.innerHTML = '';
+  streams.forEach(s => {
+    const row = document.createElement('div');
+    row.className = 'stream-row';
+    row.dataset.idx = s.idx;
+    row.innerHTML = `
+      <span class="s-idx">#${s.idx}</span>
+      <span class="s-type ${s.type}">${s.type}</span>
+      <span class="s-detail"><span class="codec">${s.codec}</span>${s.detail ? ' <span class="extra">· '+s.detail+'</span>' : ''}</span>
+      <span class="s-compat" data-compat></span>
+    `;
+    streamListEl.appendChild(row);
+  });
+  show(manifestPanel);
+}
+
+function renderTargetStamps(){
+  targetStampsEl.innerHTML = '';
+  TARGET_ORDER.forEach(key => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'stamp' + (key === selectedTarget ? ' selected' : '');
+    btn.textContent = CONTAINERS[key].label;
+    btn.addEventListener('click', () => {
+      selectedTarget = key;
+      renderTargetStamps();
+      renderCompat();
+    });
+    targetStampsEl.appendChild(btn);
+  });
+  show(destPanel);
+  show(actionPanel);
+}
+
+function renderCompat(){
+  const rows = streamListEl.querySelectorAll('.stream-row');
+  rows.forEach(row => {
+    const idx = +row.dataset.idx;
+    const stream = streams.find(s => s.idx === idx);
+    const compatEl = row.querySelector('[data-compat]');
+    const c = compatFor(stream, selectedTarget);
+    compatEl.textContent = c.label;
+    compatEl.className = 's-compat ' + c.state;
+  });
+}
+
+// ---------- remux command ----------
+function buildArgs(inputName, outputName){
+  const c = CONTAINERS[selectedTarget];
+  const args = ['-i', inputName, '-map', '0'];
+
+  const hasSubs = streams.some(s => s.type === 'subtitle');
+  const subCompat = streams.filter(s => s.type === 'subtitle').map(s => compatFor(s, selectedTarget));
+  const mustDropSubs = hasSubs && subCompat.some(c => c.state === 'drop');
+  const mustConvertSubs = hasSubs && subCompat.some(c => c.label.startsWith('→'));
+
+  if (mustDropSubs) args.push('-map', '-0:s');
+
+  args.push('-c', 'copy');
+  if (mustConvertSubs && !mustDropSubs) args.push('-c:s', c.subsConvert);
+
+  if (selectedTarget === 'mp4') args.push('-movflags', '+faststart');
+
+  args.push('-f', c.fmt, outputName);
+  return args;
+}
+
+// ---------- main flow ----------
+async function handleFile(file){
+  resetUI(false);
+  currentFile = file;
+  sourceExt = (file.name.split('.').pop() || '').toLowerCase();
+
+  try {
+    await initCore();
+  } catch (err) {
+    return; // error already shown in the loading panel/log
+  }
+
+  remuxStatus.textContent = '';
+  loadingText.textContent = 'Reading streams…';
+  show(loadingPanel);
+  loadingBar.style.width = '100%';
+
+  const inputName = 'input.' + (sourceExt || 'bin');
+  try {
+    core.FS.writeFile(inputName, await fetchFile(file));
+  } catch (err) {
+    hide(loadingPanel);
+    showError('Could not read this file in the browser.\n' + (err && err.message ? err.message : err));
+    return;
+  }
+
+  // let the "reading streams" state actually paint before the blocking probe call
+  await sleep(30);
+
+  const probeLines = probeFile(inputName);
+  parseProbeLogs(probeLines);
+  hide(loadingPanel);
+
+  if (streams.length === 0) {
+    showError('No video, audio or subtitle streams were detected. The file may be corrupt or in an unsupported format.');
+    return;
+  }
+
+  selectedTarget = (sourceExt === 'mkv') ? 'mp4' : 'mkv';
+
+  renderManifest();
+  renderTargetStamps();
+  renderCompat();
+}
+
+async function runRemux(){
+  if (isRemuxing) return;
+  isRemuxing = true;
+  hide(outputPanel);
+  hide(errorPanel);
+  transferBtn.disabled = true;
+  transferBtn.textContent = 'TRANSFERRING…';
+  remuxBar.style.width = '15%';
+  remuxStatus.innerHTML = '<span class="dot"></span> Copying streams — no re-encoding. The tab may pause briefly on large files.';
+
+  // let the "transferring" state actually paint before the blocking exec call
+  await sleep(30);
+
+  const inputName = 'input.' + (sourceExt || 'bin');
+  const c = CONTAINERS[selectedTarget];
+  const outFileName = 'output.' + selectedTarget;
+
+  try { core.FS.unlink(outFileName); } catch (e) {}
+
+  const args = buildArgs(inputName, outFileName);
+  appendLog('$ ffmpeg ' + args.join(' '));
+
+  let exitCode;
+  try {
+    exitCode = runCore(args);
+  } catch (err) {
+    isRemuxing = false;
+    transferBtn.disabled = false;
+    transferBtn.textContent = 'TRANSFER ▶';
+    showError('FFmpeg failed to run.\n' + (err && err.message ? err.message : err));
+    return;
+  }
+
+  isRemuxing = false;
+  transferBtn.disabled = false;
+  transferBtn.textContent = 'TRANSFER ▶';
+
+  if (exitCode !== 0) {
+    const tail = logBuffer.slice(-12).join('\n');
+    showError(
+      `FFmpeg could not copy these streams into ${c.label}.\n` +
+      `This usually means a codec in the manifest isn't supported by this container.\n` +
+      `MKV accepts almost any codec if you want a safe target.\n\n` +
+      `Last log lines:\n${tail}`
+    );
+    return;
+  }
+
+  let data;
+  try {
+    data = core.FS.readFile(outFileName);
+  } catch (err) {
+    showError('Remux reported success but the output file could not be read.');
+    return;
+  }
+
+  const blob = new Blob([data.buffer], { type: c.mime });
+  const url = URL.createObjectURL(blob);
+  const base = currentFile.name.replace(/\.[^.]+$/, '');
+  const outFile = `${base}.${selectedTarget}`;
+
+  outName.textContent = outFile;
+  outSize.textContent = fmtBytes(blob.size);
+  outContainer.textContent = c.label;
+  downloadBtn.href = url;
+  downloadBtn.download = outFile;
+
+  remuxBar.style.width = '100%';
+  remuxStatus.textContent = 'Done.';
+  show(outputPanel);
+  outputPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function showError(message){
+  errorText.textContent = message;
+  show(errorPanel);
+  errorPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function resetUI(clearLog){
+  currentFile = null;
+  streams = [];
+  durationSec = 0;
+  hide(manifestPanel);
+  hide(destPanel);
+  hide(actionPanel);
+  hide(outputPanel);
+  hide(errorPanel);
+  remuxBar.style.width = '0%';
+  remuxStatus.textContent = '';
+  if (clearLog) { logBuffer = []; logOutput.textContent = ''; }
+}
+
+// ---------- events ----------
+browseBtn.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('click', (e) => { if (e.target === browseBtn) return; fileInput.click(); });
+fileInput.addEventListener('change', e => {
+  if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+['dragenter','dragover'].forEach(evt => {
+  dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('drag'); });
+});
+['dragleave','drop'].forEach(evt => {
+  dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove('drag'); });
+});
+dropzone.addEventListener('drop', e => {
+  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+
+transferBtn.addEventListener('click', runRemux);
+resetBtn.addEventListener('click', () => { resetUI(true); fileInput.value = ''; });
+</script>
+</body>
+</html>
