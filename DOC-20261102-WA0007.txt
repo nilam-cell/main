@@ -1,0 +1,2397 @@
+    10) Complete Database Maintenance Utility.
+
+import sqlite3
+
+con = sqlite3.connect("sample.db") cur = con.cursor()
+
+cur.execute("""CREATE TABLE IF NOT EXISTS student ( roll_no INTEGER PRIMARY KEY,
+name TEXT NOT NULL,
+marks REAL
+) """)
+con.commit()
+
+# 1. Insert Record def insert_record():
+roll = int(input("Enter Roll Number: ")) name = input("Enter Name: ")
+marks = float(input("Enter Marks: "))
+
+cur.execute(
+"INSERT INTO student VALUES (?, ?, ?)",
+(roll, name, marks)
+)
+con.commit()
+print("Record inserted successfully!")
+
+# 2. Display Records def display_records():
+cur.execute("SELECT * FROM student") records = cur.fetchall()
+
+if records:
+print("\nRoll No\tName\tMarks") for row in records:
+print(row[0], "\t", row[1], "\t", row[2])
+else:
+print("No records found.")
+
+# 3. Search Record def search_record():
+roll = int(input("Enter Roll Number to search: "))
+
+cur.execute(
+"SELECT * FROM student WHERE roll_no = ?",
+(roll,)
+)
+record = cur.fetchone()
+
+if record:
+print("Record Found:", record) else:
+print("Record not found.")
+
+# 4. Update Record def update_record():
+roll = int(input("Enter Roll Number to update: ")) name = input("Enter New Name: ")
+marks = float(input("Enter New Marks: "))
+
+cur.execute(
+"UPDATE student SET name = ?, marks = ? WHERE roll_no = ?", (name, marks, roll)
+)
+con.commit()
+
+if cur.rowcount > 0:
+print("Record updated successfully!") else:
+print("Record not found.")
+
+# 5. Delete Record def delete_record():
+roll = int(input("Enter Roll Number to delete: "))
+
+cur.execute(
+"DELETE FROM student WHERE roll_no = ?", (roll,)
+)
+con.commit()
+
+if cur.rowcount > 0:
+print("Record deleted successfully!") else:
+print("Record not found.")
+
+# Main Menu while True:
+print("\n===== DATABASE MAINTENANCE UTILITY =====")
+print("1. Insert Record") print("2. Display Records")
+print("3. Search Record") print("4. Update Record") print("5. Delete Record") print("6. Exit")
+choice = input("Enter your choice: ") if choice == '1':
+insert_record()
+elif choice == '2': display_records()
+elif choice == '3': search_record()
+elif choice == '4': update_record()
+elif choice == '5': delete_record()
+elif choice == '6':
+print("Exiting Database Maintenance Utility.") break
+else:
+print("Invalid choice! Try again.") con.close()
+OUTPUT:
+===== DATABASE MAINTENANCE UTILITY =====
+    1. Insert Record
+    2. Display Records
+    3. Search Record
+    4. Update Record
+    5. Delete Record
+    6. Exit
+Enter your choice: 1 Enter Roll Number: 101 Enter Name: vatsal Enter Marks: 50
+Record inserted successfully!
+    11) Write a Python program to create a library.db database and dump only the Book table (structure and data) into a SQL file.
+
+import sqlite3
+
+conn = sqlite3.connect("library.db") cursor = conn.cursor()
+
+cursor.execute("""CREATE TABLE IF NOT EXISTS Book (book_id INTEGER PRIMARY KEY,title TEXT,author TEXT,price REAL)""")
+
+cursor.execute("INSERT INTO Book (title, author, price) VALUES (?, ?, ?)",("Python Programming", "John", 500)) cursor.execute("INSERT INTO Book (title, author, price) VALUES (?, ?, ?)",("Database Management", "David", 600))
+
+conn.commit()
+
+with open("book_dump.sql", "w") as file: for line in conn.iterdump():
+if "Book" in line: file.write(line + "\n")
+
+print("Book table dumped successfully into book_dump.sql") conn.close()
+OUTPUT: Book table dumped successfully into book_dump.sql
+    12) Write a Python program to export only the structure of the Employee table without its records.
+
+import sqlite3
+
+conn = sqlite3.connect("company.db") cursor = conn.cursor()
+
+cursor.execute("""CREATE TABLE IF NOT EXISTS Employee (emp_id INTEGER PRIMARY KEY,name TEXT,department TEXT,salary REAL)""")
+
+cursor.execute("""INSERT INTO Employee (name, department, salary) VALUES ('Rahul', 'IT', 30000)""")
+
+conn.commit()
+
+with open("employee_structure.sql", "w") as file:
+cursor.execute("""SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'Employee'""")
+result = cursor.fetchone() if result:
+file.write(result[0] + ";\n")
+
+print("Employee table structure exported successfully!") conn.close()
+OUTPUT: Employee table structure exported successfully!
+    13) Write a Python program using iterdump() to create a complete backup of a SQLite database and restore it into a new database.
+
+import sqlite3
+
+conn = sqlite3.connect("company.db") cursor = conn.cursor()
+
+cursor.execute("""CREATE TABLE IF NOT EXISTS Employee (emp_id INTEGER PRIMARY KEY,name TEXT,department TEXT,salary REAL)""")
+
+cursor.execute("SELECT COUNT(*) FROM Employee") if cursor.fetchone()[0] == 0:
+cursor.execute("""INSERT INTO Employee (name, department, salary)VALUES ('Rahul', 'IT', 30000)""")
+
+conn.commit()
+
+with open("backup.sql", "w") as file: for line in conn.iterdump():
+file.write(line + "\n")
+
+print("Database backup created successfully!") conn.close()
+new_conn = sqlite3.connect("company_restore.db")
+
+with open("backup.sql", "r") as file: sql_script = file.read()
+
+new_conn.executescript(sql_script) print("Database restored successfully!")
+cursor = new_conn.cursor() cursor.execute("SELECT * FROM Employee")
+
+print("\nRestored Employee Records:") for row in cursor.fetchall():
+print(row) new_conn.close()
+OUTPUT: Database backup created successfully!
+Database restored successfully!
+Restored Employee Records:(1, 'Rahul', 'IT', 30000.0)
+    14) Write a Python program to export the data of Student, Course, and Faculty tables into a single SQL file containing only INSERT statements.
+
+import sqlite3
+
+conn = sqlite3.connect("college_new.db") cursor = conn.cursor()
+
+cursor.execute("""CREATE TABLE IF NOT EXISTS Student (student_id INTEGER PRIMARY KEY,name TEXT)""")
+
+cursor.execute("""CREATE TABLE IF NOT EXISTS Course (course_id INTEGER PRIMARY KEY,course_name TEXT)""")
+
+cursor.execute("""CREATE TABLE IF NOT EXISTS Faculty (faculty_id INTEGER PRIMARY KEY,name TEXT)""")
+
+cursor.execute("SELECT COUNT(*) FROM Student") if cursor.fetchone()[0] == 0:
+cursor.execute("INSERT INTO Student VALUES (1, 'Rahul')")
+
+cursor.execute("SELECT COUNT(*) FROM Course") if cursor.fetchone()[0] == 0:
+cursor.execute("INSERT INTO Course VALUES (101, 'Python')")
+
+cursor.execute("SELECT COUNT(*) FROM Faculty") if cursor.fetchone()[0] == 0:
+cursor.execute("INSERT INTO Faculty VALUES (1, 'Amit')") conn.commit()
+with open("data.sql", "w") as file:
+for table in ["Student", "Course", "Faculty"]: cursor.execute(f'SELECT * FROM "{table}"') rows = cursor.fetchall()
+columns = [desc[0] for desc in cursor.description] column_names = ", ".join(f'"{col}"' for col in columns)
+
+for row in rows: values = []
+for value in row:
+if value is None: values.append("NULL")
+elif isinstance(value, str):
+values.append("'" + value.replace("'", "''") + "'") elif isinstance(value, bytes):
+values.append("X'" + value.hex() + "'") else:
+values.append(str(value))
+
+file.write(f'INSERT INTO "{table}" ({column_names}) 'f'VALUES ({", ".join(values)});\n')
+
+print("Data exported successfully into data.sql!") conn.close()
+OUTPUT: Data exported successfully into data.sql!
+    1) Database Initialization and Table Creation : 1.Create a New Database: 2.Create Tables:students table,courses table & enrollments table
+import sqlite3
+
+conn = sqlite3.connect("college.db") conn.execute("PRAGMA foreign_keys = ON") cursor = conn.cursor()
+cursor.execute("""CREATE TABLE IF NOT EXISTS students (student_id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,email TEXT UNIQUE NOT NULL,major TEXT)""")
+
+cursor.execute("""CREATE TABLE IF NOT EXISTS courses (course_id INTEGER PRIMARY KEY AUTOINCREMENT,course_name TEXT NOT NULL,credits INTEGER NOT NULL)""")
+
+cursor.execute("""CREATE TABLE IF NOT EXISTS enrollments (enrollment_id INTEGER PRIMARY KEY AUTOINCREMENT,student_id INTEGER NOT NULL,course_id INTEGER NOT NULL,grade TEXT,
+FOREIGN KEY (student_id) REFERENCES students(student_id),
+
+FOREIGN KEY (course_id) REFERENCES courses(course_id))""")
+
+conn.commit()
+
+print("Database and tables created successfully!") conn.close()
+OUTPUT: Database and tables created successfully!
+    2) Data Insertion (Create Operations) : 1.Insert Sample Data:
+import sqlite3
+
+conn = sqlite3.connect("college.db") conn.execute("PRAGMA foreign_keys = ON") cursor = conn.cursor()
+
+students_data = [("Vatsal Nandedkar", "vatsal@gmail.com", "Computer Science"),
+("Rahul Patel", "rahul@gmail.com", "Information Technology"), ("Priya Shah", "priya@gmail.com", "Computer Science"), ("Neha Desai", "neha@gmail.com", "Data Science")]
+
+cursor.executemany("""INSERT OR IGNORE INTO students (name, email, major)VALUES (?, ?, ?)""", students_data)
+
+courses_data = [("Python Programming", 4),("Database Management", 3),("Data Structures", 4),("Web Development", 3)]
+
+cursor.executemany("""INSERT OR IGNORE INTO courses (course_name, credits)VALUES (?, ?)""", courses_data)
+
+students = dict(cursor.execute("""SELECT email, student_id FROM students""").fetchall())
+
+courses = dict(cursor.execute("""SELECT course_name, course_id FROM courses""").fetchall())
+
+enrollments_data = [(students["vatsal@gmail.com"],courses["Python Programming"], "A"),
+
+(students["vatsal@gmail.com"], courses["Database Management"], "B+"),
+
+(students["rahul@gmail.com"], courses["Database Management"], "A"),
+
+(students["rahul@gmail.com"], courses["Data Structures"], "B"),
+
+(students["priya@gmail.com"], courses["Python Programming"], "A+"),
+
+(students["priya@gmail.com"], courses["Web Development"], "A"),
+
+(students["neha@gmail.com"], courses["Data Structures"], "B+")]
+cursor.executemany("""INSERT INTO enrollments (student_id, course_id, grade)VALUES (?, ?, ?)""", enrollments_data)
+
+conn.commit()
+print("Sample data inserted successfully!") cursor.execute("""SELECT s.name, c.course_name, e.grade FROM
+enrollments e JOIN students s ON e.student_id = s.student_id JOIN courses c ON e.course_id = c.course_id""")
+
+print("\nEnrollment Records:") for row in cursor.fetchall():
+print(row) conn.close()
+OUTPUT:
+Sample data inserted successfully!
+
+Enrollment Records:
+('Vatsal Nandedkar', 'Python Programming', 'A') ('Vatsal Nandedkar', 'Database Management', 'A+') ('Rahul Patel', 'Database Management', 'A') ('Rahul Patel', 'Data Structures', 'B')
+('Priya Shah', 'Python Programming', 'A+') ('Priya Shah', 'Web Development', 'A')
+('Vatsal Nandedkar', 'Python Programming', 'A') ('Vatsal Nandedkar', 'Database Management', 'B+') ('Rahul Patel', 'Database Management', 'A') ('Rahul Patel', 'Data Structures', 'B')
+('Priya Shah', 'Python Programming', 'A+')
+    3) Data Retrieval (Read Operations) : 1.Basic Retrieval
+2.Filtered Retrieval 3. Complex Queries (using JOINs if needed):
+import sqlite3
+
+conn = sqlite3.connect("college.db") cursor = conn.cursor()
+
+print("\n--- ALL STUDENTS ---")
+
+cursor.execute("""SELECT * FROM students""") students = cursor.fetchall()
+for student in students: print(student)
+
+print("\n--- COMPUTER SCIENCE STUDENTS ---")
+
+cursor.execute("""SELECT * FROM students WHERE major = 'Computer Science'""")
+students = cursor.fetchall() for student in students:
+print(student)
+
+print("\n--- STUDENT COURSE DETAILS ---")
+
+cursor.execute("""SELECT students.name,courses.course_name,enrollments.grade FROM enrollments JOIN students ON enrollments.student_id = students.student_id JOIN courses ON enrollments.course_id = courses.course_id""")
+results = cursor.fetchall() for row in results:
+print(
+"Student:", row[0],
+"| Course:", row[1],
+"| Grade:", row[2]) conn.close()
+
+OUTPUT:
+
+--- ALL STUDENTS ---
+(1, 'Vatsal Nandedkar', 'vatsal@gmail.com', 'Cyber Security') (2, 'Rahul Patel', 'rahul@gmail.com', 'Information Technology') (3, 'Priya Shah', 'priya@gmail.com', 'Computer Science')
+(5, 'vatsal', 'v@gmail.com', 'html')
+(6, 'hevin', 'h@gmail.com', 'it')
+(10, 'Neha Desai', 'neha@gmail.com', 'Data Science')
+
+--- COMPUTER SCIENCE STUDENTS ---
+(3, 'Priya Shah', 'priya@gmail.com', 'Computer Science')
+
+--- STUDENT COURSE DETAILS ---
+Student: Vatsal Nandedkar | Course: Python Programming | Grade: A Student: Vatsal Nandedkar | Course: Database Management | Grade: A+ Student: Rahul Patel | Course: Database Management | Grade: A Student: Rahul Patel | Course: Data Structures | Grade: B
+Student: Priya Shah | Course: Python Programming | Grade: A+ Student: Priya Shah | Course: Web Development | Grade: A
+
+    4) Data Update (Update Operations): 1.Update Student Major
+2.Update Enrollment Grade:
+
+import sqlite3
+
+conn = sqlite3.connect("college.db") cursor = conn.cursor()
+
+print("\n--- UPDATE STUDENT MAJOR ---")
+
+cursor.execute("""UPDATE students SET major = ?WHERE student_id = ?""", ("Cyber Security", 1))
+
+conn.commit()
+
+print("Student major updated successfully!")
+cursor.execute("""SELECT * FROM students WHERE student_id = ?""", (1,)) print("Updated Student Record:")
+print(cursor.fetchone())
+
+
+print("\n--- UPDATE ENROLLMENT GRADE ---")
+
+cursor.execute("""UPDATE enrollments SET grade = ? WHERE enrollment_id
+= ?""", ("A+", 2))
+
+conn.commit()
+
+print("Enrollment grade updated successfully!")
+
+cursor.execute("""SELECT * FROM enrollments WHERE enrollment_id = ?""", (2,))
+
+print("Updated Enrollment Record:") print(cursor.fetchone())
+
+conn.close()
+
+OUTPUT:
+--- UPDATE STUDENT MAJOR ---
+Student major updated successfully! Updated Student Record:
+(1, 'Vatsal Nandedkar', 'vatsal@gmail.com', 'Cyber Security')
+--- UPDATE ENROLLMENT GRADE ---
+Enrollment grade updated successfully! Updated Enrollment Record:
+(2, 1, 2, 'A+')
+    5) Data Deletion (Delete Operations): 1.Delete an Enrollment
+    2. Attempt to Delete Enrolled Student (Observe FK Constraint)
+    3. Safe Student Deletion
+
+import sqlite3
+
+conn = sqlite3.connect("college.db") conn.execute("PRAGMA foreign_keys = ON") cursor = conn.cursor()
+print("\n--- DELETE AN ENROLLMENT ---")
+
+cursor.execute("""DELETE FROM enrollments WHERE enrollment_id = ?""", (7,))
+
+conn.commit()
+
+print("Enrollment 7 deleted successfully!")
+
+print("\n--- ATTEMPT TO DELETE ENROLLED STUDENT ---")
+
+try:
+
+cursor.execute(""" DELETE FROM students WHERE student_id = ? """, (1,))
+
+conn.commit()
+
+print("Student 1 deleted successfully!") except sqlite3.IntegrityError as e:
+conn.rollback()
+
+print("Cannot delete Student 1!") print("Foreign Key Constraint Error:", e) print("Student is still enrolled in a course.")
+
+print("\n--- SAFE STUDENT DELETION ---")
+
+cursor.execute("""DELETE FROM students WHERE student_id = ?""", (4,)) conn.commit()
+print("Student 4 deleted safely!")
+
+conn.close()
+
+OUTPUT:
+--- DELETE AN ENROLLMENT ---
+Enrollment 7 deleted successfully!
+
+--- ATTEMPT TO DELETE ENROLLED STUDENT ---
+Cannot delete Student 1!
+Foreign Key Constraint Error: FOREIGN KEY constraint failed Student is still enrolled in a course.
+
+--- SAFE STUDENT DELETION ---
+Student 4 deleted safely!
+    6) Database Dumping: 1.Full Database Dump 2.SchemaOnly Dump 3. Data-Only Dump
+
+import sqlite3
+
+conn = sqlite3.connect("college.db") cursor = conn.cursor()
+print("\n--- FULL DATABASE DUMP ---")
+with open("full_database_dump.sql", "w", encoding="utf-8") as file: for line in conn.iterdump():
+file.write(line + "\n")
+
+print("Full database dump created successfully!") print("File: full_database_dump.sql")
+
+print("\n--- SCHEMA-ONLY DUMP ---")
+
+cursor.execute("""SELECT sql FROM sqlite_master WHERE type = 'table'AND sql IS NOT NULL""")
+
+schema = cursor.fetchall()
+with open("schema_only_dump.sql", "w", encoding="utf-8") as file: for row in schema:
+file.write(row[0] + ";\n\n")
+
+print("Schema-only dump created successfully!") print("File: schema_only_dump.sql")
+
+print("\n--- DATA-ONLY DUMP ---")
+
+tables = ["students","courses","enrollments"]
+
+with open("data_only_dump.sql", "w", encoding="utf-8") as file: for table in tables:
+cursor.execute("SELECT * FROM " + table) rows = cursor.fetchall()
+for row in rows: values = []
+for value in row:
+
+if value is None: values.append("NULL")
+
+elif isinstance(value, (int, float)): values.append(str(value))
+
+else:
+value = str(value).replace("'", "''") values.append("'" + value + "'")
+
+sql = (
+"INSERT INTO "
++ table
++ " VALUES ("
++ ", ".join(values)
++ ");\n"
+)
+
+file.write(sql)
+
+print("Data-only dump created successfully!") print("File: data_only_dump.sql")
+
+conn.close()
+
+print("\nAll database dumps created successfully!")
+
+OUTPUT:
+
+--- FULL DATABASE DUMP ---
+Full database dump created successfully! File: full_database_dump.sql
+
+--- SCHEMA-ONLY DUMP ---
+Schema-only dump created successfully! File: schema_only_dump.sql
+
+--- DATA-ONLY DUMP ---
+Data-only dump created successfully! File: data_only_dump.sql
+
+All database dumps created successfully!
+    7) CSV File Handling: 1.Export Enrollments to CSV 2.Import New Students from CSV
+
+        A) Import File:
+
+import sqlite3 import csv
+
+conn = sqlite3.connect("college.db") cursor = conn.cursor()
+with open( "new_students.csv", "r",
+newline="", encoding="utf-8"
+) as file:
+
+reader = csv.DictReader(file) for row in reader:
+try:
+
+cursor.execute("""
+INSERT INTO students (name, email, major) VALUES (?, ?, ?)
+""", (
+row["name"],
+row["email"],
+row["major"]
+))
+
+print("Student imported:", row["name"]) except sqlite3.IntegrityError:
+print(
+"Student already exists:", row["email"]
+)
+
+conn.commit()
+
+print("CSV import completed successfully!") conn.close()
+OUTPUT:
+Student already exists: v@gmail.com Student already exists: h@gmail.com CSV import completed successfully!
+
+        B) Export File:
+
+import sqlite3 import csv
+conn = sqlite3.connect("college.db") cursor = conn.cursor() cursor.execute("""SELECT
+enrollments.enrollment_id,students.name,courses.course_name,enrollments. grade FROM enrollments JOIN students
+ON enrollments.student_id = students.student_id JOIN courses
+ON enrollments.course_id = courses.course_id """)
+
+data = cursor.fetchall()
+
+with open("enrollments.csv","w",newline="",encoding="utf-8") as file: writer = csv.writer(file)
+writer.writerow(["Enrollment ID","Student Name","Course Name","Grade"]) writer.writerows(data)
+
+print("Enrollments exported successfully!") print("File created: enrollments.csv")
+
+conn.close()
+
+OUTPUT:
+Enrollments exported successfully! File created: enrollments.csv
+    1) 1.Setup Your Database Connection:1. Import Module. 2.
+Connect to Database 3. Create a Cursor
+
+import sqlite3
+
+conn = sqlite3.connect("product.db") cursor = conn.cursor()
+
+print("Database connected successfully!") print("Cursor created successfully!")
+
+conn.close()
+
+OUTPUT:
+Database connected successfully! Cursor created successfully!
+    2) 2.Create Your First Table (products):1. Define SQL. 2. Execute SQL. 3. Save Changes 4. Close Connection
+
+import sqlite3
+
+conn = sqlite3.connect("product.db") cursor = conn.cursor()
+
+sql = """CREATE TABLE IF NOT EXISTS products (product_id INTEGER PRIMARY KEY AUTOINCREMENT,product_name TEXT NOT NULL,price REAL NOT NULL,quantity INTEGER NOT NULL)"""
+
+cursor.execute(sql) conn.commit()
+print("Products table created successfully!") conn.close()
+OUTPUT: Products table created successfully!
+    3) Add New Products (Create Operation - INSERT):1. Re-connect and Get Cursor. 2. Insert Single Product. 3. Insert Multiple Products. 4. Confirm Insertions. 5. Commit and Close
+
+import sqlite3
+
+conn = sqlite3.connect("product.db") cursor = conn.cursor()
+cursor.execute("""INSERT INTO products (product_name, price, quantity) VALUES (?, ?, ?)""", ("Laptop", 55000, 10))
+
+print("Single product inserted successfully!")
+
+products = [("Mouse", 500, 25),("Keyboard", 1200, 15),("Monitor", 12000,
+    8) ,("Headphones", 2000, 5)]
+
+cursor.executemany("""INSERT INTO products (product_name, price, quantity)VALUES (?, ?, ?)""", products)
+
+print("Multiple products inserted successfully!") cursor.execute("""SELECT * FROM products""") rows = cursor.fetchall()
+print("\n--- PRODUCTS ---")
+
+for row in rows: print(row)
+
+conn.commit() conn.close()
+OUTPUT:
+Single product inserted successfully! Multiple products inserted successfully!
+
+--- PRODUCTS ---
+(1, 'Laptop', 58000.0, 20)
+(2, 'Mouse', 500.0, 25)
+(4, 'Monitor', 12000.0, 8)
+(5, 'Headphones', 2000.0, 5)
+(6, 'USB Cable', 300.0, 20)
+(7, 'USB Cable', 300.0, 20)
+(8, 'USB Cable', 300.0, 20)
+(9, 'Laptop', 55000.0, 10)
+    4) View Your Products (Read Operation - SELECT):1. Print Products.2. Select Specific Product.3. Select Products with Low Quantity
+
+import sqlite3
+
+conn = sqlite3.connect("product.db") cursor = conn.cursor()
+print("\n--- ALL PRODUCTS ---")
+
+cursor.execute("""SELECT * FROM products""") products = cursor.fetchall()
+for product in products: print(product)
+
+print("\n--- SPECIFIC PRODUCT ---")
+
+cursor.execute("""SELECT * FROM products WHERE product_id = ?""", (1,)) product = cursor.fetchone()
+print(product)
+
+print("\n--- LOW QUANTITY PRODUCTS ---")
+
+cursor.execute("""SELECT * FROM products WHERE quantity < ?""", (10,)) products = cursor.fetchall()
+for product in products: print(product)
+
+conn.close()
+OUTPUT:
+
+--- ALL PRODUCTS ---
+(1, 'Laptop', 58000.0, 20)
+(2, 'Mouse', 500.0, 25)
+(4, 'Monitor', 12000.0, 8)
+(5, 'Headphones', 2000.0, 5)
+(6, 'USB Cable', 300.0, 20)
+(7, 'USB Cable', 300.0, 20)
+(8, 'USB Cable', 300.0, 20)
+(9, 'Laptop', 55000.0, 10)
+(10, 'Mouse', 500.0, 25)
+(11, 'Keyboard', 1200.0, 15)
+(12, 'Monitor', 12000.0, 8)
+(13, 'Headphones', 2000.0, 5)
+
+--- SPECIFIC PRODUCT ---(1, 'Laptop', 58000.0, 20)
+
+--- LOW QUANTITY PRODUCTS ---(4, 'Monitor', 12000.0, 8)
+(5, 'Headphones', 2000.0, 5)
+(12, 'Monitor', 12000.0, 8)
+(13, 'Headphones', 2000.0, 5)
+    5) Update Product Information (Update Operation - UPDATE):1. Update Quantity. 2. Update Price. 3. Confirm Updates.
+
+import sqlite3
+
+conn = sqlite3.connect("product.db") cursor = conn.cursor()
+cursor.execute("""UPDATE products SET quantity = ?WHERE product_id
+= ?""", (20, 1))
+
+print("Product quantity updated successfully!")
+
+cursor.execute("""UPDATE products SET price = ? WHERE product_id = ?""", (58000, 1))
+
+print("Product price updated successfully!") conn.commit()
+cursor.execute("""SELECT *FROM products WHERE product_id = ?""", (1,)) product = cursor.fetchone()
+print("\n--- UPDATED PRODUCT ---")
+print(product) conn.close() OUTPUT:
+Product quantity updated successfully!
+Product price updated successfully!
+
+--- UPDATED PRODUCT ---(1, 'Laptop', 58000.0, 20)
+    6) Remove Products (Delete Operation - DELETE):1. Delete a Product. 2. Confirm Deletion
+
+import sqlite3
+
+conn = sqlite3.connect("product.db") cursor = conn.cursor()
+cursor.execute("""DELETE FROM products WHERE product_id = ?""", (3,))
+
+print("Product deleted successfully!") conn.commit()
+
+cursor.execute("""SELECT * FROM products""") products = cursor.fetchall()
+print("\n--- PRODUCTS AFTER DELETION ---")
+
+for product in products: print(product)
+
+conn.close()
+
+OUTPUT:
+
+Product deleted successfully!
+
+--- PRODUCTS AFTER DELETION ---(1, 'Laptop', 58000.0, 20)
+(2, 'Mouse', 500.0, 25)
+(4, 'Monitor', 12000.0, 8)
+(5, 'Headphones', 2000.0, 5)
+(6, 'USB Cable', 300.0, 20)
+(7, 'USB Cable', 300.0, 20)
+(8, 'USB Cable', 300.0, 20)
+(9, 'Laptop', 55000.0, 10)
+(10, 'Mouse', 500.0, 25)
+(11, 'Keyboard', 1200.0, 15)
+(12, 'Monitor', 12000.0, 8)
+(13, 'Headphones', 2000.0, 5)
+    7) Understanding commit() and rollback(): 1. Demonstrate Commit. 2. Demonstrate Rollback
+
+        A) Commit.
+import sqlite3
+
+conn = sqlite3.connect("product.db") cursor = conn.cursor()
+
+cursor.execute("""INSERT INTO products (product_name, price, quantity)VALUES (?, ?, ?)""", ("USB Cable", 300, 20))
+
+# Commit permanently saves the change conn.commit()
+
+print("Product inserted and committed successfully!")
+
+cursor.execute("""SELECT *FROM products WHERE product_name = ?""", ("USB Cable",))
+
+print(cursor.fetchone()) conn.close()
+OUTPUT:
+Product inserted and committed successfully! (6, 'USB Cable', 300.0, 20)
+
+        B) Rollback.
+
+import sqlite3
+
+conn = sqlite3.connect("product.db") cursor = conn.cursor()
+cursor.execute("""INSERT INTO products (product_name, price, quantity)VALUES (?, ?, ?)""", ("Temporary Product", 999, 5))
+
+print("Temporary product inserted.")
+
+# Rollback cancels the insertion conn.rollback()
+
+print("Rollback performed successfully!")
+
+cursor.execute("""SELECT *FROM products WHERE product_name = ?""", ("Temporary Product",))
+result = cursor.fetchone() if result is None:
+print("Temporary product was removed by rollback.") else:
+print(result) conn.close()
+OUTPUT:
+Temporary product inserted. Rollback performed successfully!
+Temporary product was removed by rollback.
+    8) Basic Database Backup (Dump):1. Dump Database.2. Save to File
+
+import sqlite3
+
+conn = sqlite3.connect("product.db")
+with open("product_database_backup.sql","w",encoding="utf-8") as file: for line in conn.iterdump():
+file.write(line + "\n")
+
+
+print("Database backup created successfully!") print("File: product_database_backup.sql")
+
+conn.close()
+
+OUTPUT:
+Database backup created successfully! File: product_database_backup.sql
+    9) Export Products to CSV File
+
+import sqlite3 import csv
+
+conn = sqlite3.connect("product.db") cursor = conn.cursor()
+cursor.execute("""SELECT * FROM products""") products = cursor.fetchall()
+with open("products.csv","w",newline="",encoding="utf-8") as file: writer = csv.writer(file)
+writer.writerow(["Product ID","Product Name","Price","Quantity"]) writer.writerows(products)
+
+
+print("Products exported successfully!") print("File: products.csv")
+
+conn.close()
+
+OUTPUT:
+Products exported successfully! File: products.csv
+    1. Setup - Database Connection and Table Creation:
+        1. Connect to Database 2. Create tasks Table
+
+        2. Core To-Do List Functions:
+            1. add_task(description, due_date) function
+            2. view_tasks(show_completed=False) function
+            3. mark_task_completed(task_id) function
+            4. delete_task(task_id) function
+
+        3. Simple User Interface (Main Program Loop):
+            1. Display Menu: Continuously display the following menu options: To-Do List
+Manager:
+1. Add New Task 2. View Pending Tasks 3. View All Tasks (including
+completed) 4. Mark Task as Completed 5. Delete Task 6. Exit
+
+            2. Enter your choice: Get User Input:
+            3. Process Choice
+            4. Error Handling for Input
+
+import sqlite3
+
+# 1. SETUP - DATABASE CONNECTION AND TABLE CREATION
+conn = sqlite3.connect("todo.db") cursor = conn.cursor()
+cursor.execute("""CREATE TABLE IF NOT EXISTS tasks (task_id INTEGER PRIMARY KEY AUTOINCREMENT,description TEXT NOT NULL,due_date TEXT NOT NULL,completed INTEGER DEFAULT 0)""")
+conn.commit() conn.close()
+print("Database and tasks table created successfully!")
+
+# 2. CORE TO-DO LIST FUNCTIONS
+# 2.1 add_task(description, due_date)
+
+def add_task(description, due_date):
+
+conn = sqlite3.connect("todo.db") cursor = conn.cursor()
+
+cursor.execute("""INSERT INTO tasks (description, due_date, completed)VALUES (?, ?, 0)""", (description, due_date))
+conn.commit() conn.close()
+
+print("Task added successfully!")
+
+# 2.2 view_tasks(show_completed=False)
+
+def view_tasks(show_completed=False):
+
+conn = sqlite3.connect("todo.db") cursor = conn.cursor()
+
+if show_completed:
+
+cursor.execute("""SELECT task_id, description, due_date, completed FROM tasks ORDER BY task_id""")
+
+else:
+
+cursor.execute("""SELECT task_id, description, due_date, completed FROM tasks WHERE completed = 0 ORDER BY task_id""")
+
+tasks = cursor.fetchall() conn.close()
+if not tasks:
+print("No tasks found.") return
+
+print("\n	TASKS	") for task in tasks:
+if task[3] == 1:
+status = "Completed" else:
+status = "Pending"
+
+print("ID:", task[0],"| Description:", task[1],"| Due Date:", task[2],"| Status:", status)
+
+print("	")
+
+# 2.3 mark_task_completed(task_id)
+
+def mark_task_completed(task_id):
+
+conn = sqlite3.connect("todo.db") cursor = conn.cursor()
+
+cursor.execute("""UPDATE tasks SET completed = 1 WHERE task_id
+= ?""", (task_id,))
+
+if cursor.rowcount == 0: print("Task not found!")
+else:
+print("Task marked as completed!") conn.commit()
+conn.close()
+
+# 2.4 delete_task(task_id)
+
+def delete_task(task_id):
+
+
+conn = sqlite3.connect("todo.db") cursor = conn.cursor()
+cursor.execute("""DELETE FROM tasks WHERE task_id = ?""", (task_id,)) if cursor.rowcount == 0:
+print("Task not found!") else:
+print("Task deleted successfully!") conn.commit()
+conn.close()
+
+# 3. SIMPLE USER INTERFACE - MAIN PROGRAM LOOP
+
+while True:
+
+# 3.1 Display Menu
+
+print("\n====================================") print("	TO-DO LIST MANAGER") print("====================================")
+print("1. Add New Task") print("2. View Pending Tasks")
+print("3. View All Tasks (including completed)") print("4. Mark Task as Completed")
+print("5. Delete Task") print("6. Exit")
+print("====================================")
+# 3.2 Enter your choice
+choice = input("Enter your choice: ")
+
+# 3.3 Process Choice
+
+if choice == "1":
+
+description = input("Enter task description: ") due_date = input("Enter due date (DD-MM-YYYY): ")
+
+if description.strip() == "":
+print("Task description cannot be empty!")
+
+elif due_date.strip() == "":
+print("Due date cannot be empty!")
+
+else:
+add_task(description, due_date) elif choice == "2":
+view_tasks(False) elif choice == "3":
+view_tasks(True) elif choice == "4":
+# 3.4 Error Handling for Input
+
+try:
+
+task_id = int(input("Enter task ID: ")) mark_task_completed(task_id)
+except ValueError:
+
+print("Invalid input! Please enter a valid number.") elif choice == "5":
+try:
+
+task_id = int(input("Enter task ID: ")) delete_task(task_id)
+except ValueError:
+
+print("Invalid input! Please enter a valid number.") elif choice == "6":
+print("\nThank you for using To-Do List Manager!") print("Program ended.")
+break else:
+print("Invalid choice!")
+print("Please enter a number between 1 and 6.")
+
+OUTPUT:
+Database and tasks table created successfully!
+
+==================================== TO-DO LIST MANAGER
+====================================
+    1. Add New Task
+    2. View Pending Tasks
+    3. View All Tasks (including completed)
+    4. Mark Task as Completed
+    5. Delete Task
+    6. Exit
+====================================
+Enter your choice: 1
+Enter task description: python practical Enter due date (DD-MM-YYYY): 10-10-26 Task added successfully!
+
+==================================== TO-DO LIST MANAGER
+====================================
+    1. Add New Task
+    2. View Pending Tasks
+    3. View All Tasks (including completed)
+    4. Mark Task as Completed
+    5. Delete Task
+    6. Exit
+====================================
+Enter your choice: 2
+
+TASKS
+ID: 2 | Description: java practical | Due Date: 12-3-2026 | Status: Pending ID: 4 | Description: java programing | Due Date: 10-12-26 | Status: Pending ID: 6 | Description: python practical | Due Date: 10-10-26 | Status: Pending
+
+
+==================================== TO-DO LIST MANAGER
+====================================
+    1. Add New Task
+    2. View Pending Tasks
+    3. View All Tasks (including completed)
+    4. Mark Task as Completed
+    5. Delete Task
+    6. Exit
+====================================
+Enter your choice: 3
+
+TASKS
+ID: 2 | Description: java practical | Due Date: 12-3-2026 | Status: Pending ID: 3 | Description: c++ | Due Date: 08-10-2026 | Status: Completed
+ID: 4 | Description: java programing | Due Date: 10-12-26 | Status: Pending ID: 6 | Description: python practical | Due Date: 10-10-26 | Status: Pending
+
+
+==================================== TO-DO LIST MANAGER
+====================================
+    1. Add New Task
+    2. View Pending Tasks
+    3. View All Tasks (including completed)
+    4. Mark Task as Completed
+    5. Delete Task
+    6. Exit
+====================================
+Enter your choice: 4 Enter task ID: 6
+Task marked as completed!
+
+==================================== TO-DO LIST MANAGER
+====================================
+    1. Add New Task
+    2. View Pending Tasks
+    3. View All Tasks (including completed)
+    4. Mark Task as Completed
+    5. Delete Task
+    6. Exit
+====================================
+Enter your choice: 3
+
+TASKS
+ID: 2 | Description: java practical | Due Date: 12-3-2026 | Status: Pending ID: 3 | Description: c++ | Due Date: 08-10-2026 | Status: Completed
+ID: 4 | Description: java programing | Due Date: 10-12-26 | Status: Pending
+ID: 6 | Description: python practical | Due Date: 10-10-26 | Status: Completed
+
+
+==================================== TO-DO LIST MANAGER
+====================================
+    1. Add New Task
+    2. View Pending Tasks
+    3. View All Tasks (including completed)
+    4. Mark Task as Completed
+    5. Delete Task
+    6. Exit
+====================================
+Enter your choice: 5 Enter task ID: 4
+Task deleted successfully!
+
+==================================== TO-DO LIST MANAGER
+====================================
+    1. Add New Task
+    2. View Pending Tasks
+    3. View All Tasks (including completed)
+    4. Mark Task as Completed
+    5. Delete Task
+    6. Exit
+====================================
+Enter your choice:
+    1) Tkinter Basic Registration Form.
+
+import tkinter as tk
+from tkinter import messagebox import re
+
+root = tk.Tk()
+root.title("Basic Registration Form") root.geometry("400x400")
+
+
+def validate_name(name):
+if not re.fullmatch(r"[A-Za-z ]+", name): return False
+
+if len(name.strip()) < 3: return False
+
+return True
+
+
+def validate_email(email):
+pattern = r"^[\w\.-]+@[\w\.-]+\.\w+$"
+return re.fullmatch(pattern, email) is not None
+
+
+def validate_phone(phone):
+return phone.isdigit() and len(phone) == 10 def register():
+name = name_entry.get().strip() email = email_entry.get().strip() phone = phone_entry.get().strip()
+
+if name == "":
+messagebox.showerror("Error", "Name is required!") return
+
+if not validate_name(name): messagebox.showerror(
+"Error",
+"Name must contain only characters and at least 3 letters!"
+)
+return
+
+if email == "":
+messagebox.showerror("Error", "Email is required!") return
+if not validate_email(email): messagebox.showerror(
+"Error",
+"Please enter a valid email address!"
+)
+return
+
+if phone == "":
+messagebox.showerror("Error", "Phone number is required!") return
+
+if not validate_phone(phone): messagebox.showerror(
+"Error",
+"Phone number must contain exactly 10 digits!"
+)
+return
+
+messagebox.showinfo( "Success",
+"Registration Successful!"
+)
+
+tk.Label(root,text="Basic Registration Form",font=("Arial", 18, "bold")).pack(pady=20)
+
+tk.Label(root, text="Name:").pack()
+
+name_entry = tk.Entry(root, width=30) name_entry.pack(pady=5)
+
+tk.Label(root, text="Email:").pack()
+
+email_entry = tk.Entry(root, width=30) email_entry.pack(pady=5)
+
+
+tk.Label(root, text="Phone:").pack()
+
+phone_entry = tk.Entry(root, width=30) phone_entry.pack(pady=5)
+
+tk.Button(root,text="Register",command=register).pack(pady=25) root.mainloop()
+OUTPUT:
+
+    2) Tkinter Registration Form with Country & Password
+
+import tkinter as tk
+from tkinter import messagebox import re
+
+root = tk.Tk() root.title("Registration Form") root.geometry("450x550")
+def validate_name(name): if len(name.strip()) < 3:
+return False
+
+if not re.fullmatch(r"[A-Za-z ]+", name): return False
+
+return True
+
+
+def validate_email(email):
+
+pattern = r"^[\w\.-]+@[\w\.-]+\.\w+$"
+
+return re.fullmatch(pattern, email) is not None def register():
+name = name_entry.get().strip() email = email_entry.get().strip() country = country_entry.get().strip() password = password_entry.get()
+confirm_password = confirm_entry.get()
+
+if name == "":
+messagebox.showerror("Error","Name is required!") return
+
+if not validate_name(name):
+messagebox.showerror("Error","Name must contain only characters and at least 3 letters!")
+return
+
+if email == "":
+messagebox.showerror("Error","Email is required!") return
+
+if not validate_email(email): messagebox.showerror("Error","Enter a valid email address!")
+return
+
+if country == "": messagebox.showerror("Error","Country is required!") return
+
+if password == "": messagebox.showerror("Error","Password is required!") return
+
+if len(password) < 6:
+messagebox.showerror("Error","Password must contain at least 6 characters!")
+return
+
+if confirm_password == "": messagebox.showerror(
+"Error",
+"Please confirm your password!"
+)
+return
+
+if password != confirm_password: messagebox.showerror("Error","Passwords do not match!") return
+
+messagebox.showinfo("Success","Registration Successful!")
+
+
+tk.Label(root,text="Registration Form",font=("Arial", 18, "bold")).pack(pady=20) tk.Label(root, text="Name:").pack()
+name_entry = tk.Entry(root, width=35) name_entry.pack(pady=5)
+
+tk.Label(root, text="Email:").pack()
+
+email_entry = tk.Entry(root, width=35) email_entry.pack(pady=5)
+
+tk.Label(root, text="Country:").pack()
+
+country_entry = tk.Entry(root, width=35) country_entry.pack(pady=5)
+
+tk.Label(root, text="Password:").pack()
+
+password_entry = tk.Entry(root,width=35,show="*") password_entry.pack(pady=5)
+
+tk.Label(root, text="Confirm Password:").pack()
+
+confirm_entry = tk.Entry(root,width=35,show="*") confirm_entry.pack(pady=5)
+
+tk.Button(root,text="Register",command=register).pack(pady=25) root.mainloop()
+OUTPUT:
+
+    3) Tkinter Registration Form with Language Selection.
+
+import tkinter as tk
+from tkinter import messagebox import re
+
+root = tk.Tk() root.title("Registration Form") root.geometry("500x550")
+
+def validate_name(name): if len(name.strip()) < 3:
+return False
+
+if not re.fullmatch(r"[A-Za-z ]+", name): return False
+
+return True
+
+def validate_email(email):
+pattern = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" return re.fullmatch(pattern, email) is not None
+
+def register():
+
+name = name_entry.get().strip() email = email_entry.get().strip()
+
+gender_value = gender.get() languages = []
+if python_var.get() == 1: languages.append("Python")
+
+if java_var.get() == 1: languages.append("Java")
+
+if cpp_var.get() == 1: languages.append("C++")
+
+if name == "":
+messagebox.showerror("Error", "Name is required!") return
+
+if not validate_name(name):
+messagebox.showerror("Error","Name must contain only characters and at least 3 letters!")
+return
+if email == "":
+messagebox.showerror("Error", "Email is required!") return
+
+if not validate_email(email):
+messagebox.showerror("Error","Please enter a valid email address!") return
+
+if gender_value == 0:
+messagebox.showerror("Error","Please select your gender!") return
+
+if len(languages) == 0:
+messagebox.showerror("Error","Please select at least one language!") return
+
+if gender_value == 1: selected_gender = "Male"
+else:
+selected_gender = "Female"
+
+messagebox.showinfo("Registration Successful","Registration Successful!\n\n""Name: " + name +"\nEmail: " + email +"\nGender: " + selected_gender +"\nLanguages: " + ", ".join(languages))
+
+tk.Label(root,text="Registration Form",font=("Arial", 20, "bold")).pack(pady=20) tk.Label(root, text="Name:").pack()
+name_entry = tk.Entry(root, width=35) name_entry.pack(pady=5)
+
+tk.Label(root, text="Email:").pack()
+
+email_entry = tk.Entry(root, width=35) email_entry.pack(pady=5)
+tk.Label(root,text="Gender:").pack(pady=8) gender = tk.IntVar()
+gender.set(0)
+
+tk.Radiobutton(root,text="Male",variable=gender,value=1).pack() tk.Radiobutton(root,text="Female",variable=gender,value=2).pack() tk.Label(root,text="Select Languages:").pack(pady=10)
+python_var = tk.IntVar() java_var = tk.IntVar()
+cpp_var = tk.IntVar() tk.Checkbutton(root,text="Python",variable=python_var).pack() tk.Checkbutton(root,text="Java",variable=java_var).pack() tk.Checkbutton(root,text="C++",variable=cpp_var).pack() tk.Button(root,text="Register",width=15,command=register).pack(pady=25) root.mainloop()
+OUTPUT:
+
+    1) Environment Setup and Database/Collection Initialization:
+        1. Connect to MongoDB
+        2. Select Database and Collection.
+
+mongosh use mean
+db.createCollection("exam")
+
+OUTPUT:
+
+    2) 2.Data Insertion (Create Operations):
+        1. Insert Sample Student Documents
+        2. Vary your data.
+
+db.exam.insertMany([{id:1,name:"vatsal",age:20,major:"computerscience",enr ollments:[{course:"python",marks:85},{course:"dbms",marks:78}]},{id:2,name:" hevin",age:21,major:"IT",enrollments:[{course:"python",marks:92},{course:"jav a",marks:88}]},{id:3,name:"henil",age:19,major:"computerscience",enrollments
+:[{course:"dbms",marks:90},{course:"java",marks:75}]},])
+
+OUTPUT:
+
+    3) Data Retrieval (Read Operations):
+
+        1. Basic Retrieval Query:db.exam.find()
+
+OUTPUT:
+
+
+        2. Filtered Retrieval
+Query: db.exam.find({major:"computer science"})
+
+OUTPUT:
+
+        3. Advanced Retrieval (using sort, limit, skip)
+            A) Using Sort:db.exam.find().sort({ age: 1 })
+
+OUTPUT:
+
+            B) using limit: db.exam.find().sort({ age: -1 }).limit(3)
+
+OUTPUT:
+
+
+            C) Using Skip:db.exam.find().skip(2) OUTPUT:
+
+
+
+
+
+
+
+
+
+
+
+
+
+        4. Aggregation Queries:
+
+            A) Count Students per Major:
+QUERY: db.exam.aggregate([{$group: {_id: "$major",totalStudents: { $sum: 1 }}}])
+
+OUTPUT:
+
+            B) Average Marks per Course:
+QUERY: db.exam.aggregate([{ $unwind: "$enrollments" },{$group: {_id: "$enrollments.course",averageMarks: {$avg:
+"$enrollments.marks"}}}])
+
+OUTPUT:
+
+
+            C) Students with High Marks in a Course
+QUERY: db.exam.aggregate([{$unwind: "$enrollments"},{$match:
+{"enrollments.course": "python","enrollments.marks": { $gt: 85 }}},{$project:
+{_id: 0,name: 1,course: "$enrollments.course",marks: "$enrollments.marks"}}])
+
+OUTPUT:
+
+
+    4) Data Update (Update Operations):
+
+    A) Update Top-Level Field
+QUERY: db.exam.updateOne({ id: 1 },{ $set: { age: 22 } })
+
+OUTPUT:
+
+
+    B) Add a New Enrollment
+Query: db.exam.updateOne({ id: 1 },{$push: {enrollments: {course: "mongodb",marks: 90}}})
+
+OUTPUT:
+
+    C) Update Embedded Field (Specific Array Element) Query: db.exam.updateOne({id: 1,"enrollments.course": "python"},{$set:
+{"enrollments.$.marks": 95}})
+
+OUTPUT:
+
+
+    D) Remove an Enrollment
+Query: db.exam.updateOne({ id: 1 },{$pull: {enrollments: { course: "dbms" }}})
+
+OUTPUT:
+
+
+    E) Upsert Operation
+Query: db.exam.updateOne({ id: 4 },{$set: {name: "jay",age: 20,major: "cyber security",enrollments: [{ course: "python", marks: 91 }]}},{ upsert: true })
+
+OUTPUT:
+
+
+    5) Data Deletion (Delete Operations):
+
+    A) Delete a Single Student Query: db.exam.deleteOne({ id: 4 })
+OUTPUT:
+
+    B) Delete Multiple Students Query:db.exam.deleteMany({age: { $gt: 20 }})
+
+OUTPUT:
+
+        1) Create a Blank window with Tkinter library.
+
+import tkinter as tk root = tk.Tk()
+root.title("Blank Window") root.geometry("500x300") root.mainloop() OUTPUT:
+        2) Create a window with the help of pack() method (add button widgets inside window).
+
+import tkinter as tk root = tk.Tk()
+root.title("Pack Method") root.geometry("400x300")
+
+button1 = tk.Button(root, text="Button 1") button2 = tk.Button(root, text="Button 2") button3 = tk.Button(root, text="Button 3")
+
+button1.pack() button2.pack() button3.pack()
+
+root.mainloop()
+
+OUTPUT:
+
+        3) Write a code to create login form using grid() method.
+
+import tkinter as tk root = tk.Tk()
+root.title("Login Form") root.geometry("400x250")
+
+username_label = tk.Label(root, text="Username:") username_label.grid(row=0, column=0, padx=10, pady=10)
+
+username_entry = tk.Entry(root) username_entry.grid(row=0, column=1, padx=10, pady=10)
+
+password_label = tk.Label(root, text="Password:") password_label.grid(row=1, column=0, padx=10, pady=10)
+
+password_entry = tk.Entry(root, show="*") password_entry.grid(row=1, column=1, padx=10, pady=10)
+
+login_button = tk.Button(root, text="Login") login_button.grid(row=2, column=1, padx=10, pady=10)
+
+root.mainloop()
+
+OUTPUT:
+
+        4) Create a window form with the help of place() method.
+
+import tkinter as tk root = tk.Tk()
+root.title("Place Method") root.geometry("500x300")
+
+name_label = tk.Label(root, text="Name:") name_label.place(x=80, y=50)
+
+name_entry = tk.Entry(root) name_entry.place(x=180, y=50)
+
+email_label = tk.Label(root, text="Email:") email_label.place(x=80, y=100)
+
+email_entry = tk.Entry(root) email_entry.place(x=180, y=100)
+
+phone_label = tk.Label(root, text="Phone:") phone_label.place(x=80, y=150)
+
+phone_entry = tk.Entry(root) phone_entry.place(x=180, y=150)
+
+submit_button = tk.Button(root, text="Submit") submit_button.place(x=200, y=210)
+
+root.mainloop()
+
+OUTPUT:
+
+        5) Divide a window form into 2 parts using frame.
+
+import tkinter as tk root = tk.Tk()
+root.title("Frame Example") root.geometry("500x300")
+
+frame1 = tk.Frame(root, width=250, height=300, relief="solid", borderwidth=2) frame1.pack(side="left", fill="both", expand=True)
+
+frame2 = tk.Frame(root, width=250, height=300, relief="solid", borderwidth=2) frame2.pack(side="right", fill="both", expand=True)
+
+label1 = tk.Label(frame1, text="Left Part") label1.pack(pady=100)
+
+label2 = tk.Label(frame2, text="Right Part") label2.pack(pady=100)
+
+root.mainloop()
+
+OUTPUT:
+
+        6) Write python code to gather student information using windows gui form using Tkinter widgets. Form Properties: (Name, Email, Phone, Address, Classname(radiobutton), semester(listbox), hobbies(checkbox), image(canvas) & submit button.).
+import tkinter as tk
+from tkinter import messagebox
+
+root = tk.Tk()
+root.title("Student Information Form") root.geometry("600x650")
+
+heading = tk.Label(root,text="Student Information Form",font=("Arial", 18, "bold"))
+heading.pack(pady=10)
+
+frame = tk.Frame(root) frame.pack(pady=10)
+
+tk.Label(frame, text="Name:").grid(row=0, column=0, padx=10, pady=8, sticky="w")
+
+name_entry = tk.Entry(frame, width=30) name_entry.grid(row=0, column=1, padx=10, pady=8)
+
+tk.Label(frame, text="Email:").grid(row=1, column=0, padx=10, pady=8, sticky="w")
+
+email_entry = tk.Entry(frame, width=30) email_entry.grid(row=1, column=1, padx=10, pady=8)
+
+tk.Label(frame, text="Phone:").grid(row=2, column=0, padx=10, pady=8, sticky="w")
+
+phone_entry = tk.Entry(frame, width=30) phone_entry.grid(row=2, column=1, padx=10, pady=8)
+
+tk.Label(frame, text="Address:").grid(row=3, column=0, padx=10, pady=8, sticky="nw")
+
+address_text = tk.Text(frame, width=30, height=4) address_text.grid(row=3, column=1, padx=10, pady=8)
+
+tk.Label(frame, text="Class:").grid(row=4, column=0, padx=10, pady=8, sticky="w")
+
+class_var = tk.StringVar(value="B.Sc CS")
+tk.Radiobutton(frame,text="B.Sc CS",variable=class_var,value="B.Sc CS").grid(row=4, column=1, sticky="w")
+
+tk.Radiobutton(frame,text="BCA",variable=class_var,value="BCA").grid(row=5, column=1, sticky="w")
+
+tk.Label(frame, text="Semester:").grid(row=6, column=0, padx=10, pady=8, sticky="nw")
+
+semester_listbox = tk.Listbox(frame, height=4, width=25)
+
+for semester in ["Semester 1", "Semester 2", "Semester 3", "Semester 4","Semester 5", "Semester 6"]:
+semester_listbox.insert(tk.END, semester) semester_listbox.grid(row=6, column=1, padx=10, pady=8)
+tk.Label(frame, text="Hobbies:").grid(row=7, column=0, padx=10, pady=8, sticky="nw")
+
+reading_var = tk.BooleanVar() coding_var = tk.BooleanVar() sports_var = tk.BooleanVar()
+
+tk.Checkbutton(frame,text="Reading",variable=reading_var).grid(row=7, column=1, sticky="w")
+
+tk.Checkbutton(frame,text="Coding",variable=coding_var).grid(row=8, column=1, sticky="w")
+
+tk.Checkbutton(frame,text="Sports",variable=sports_var).grid(row=9, column=1, sticky="w")
+
+tk.Label(frame, text="Image:").grid(row=10, column=0, padx=10, pady=8)
+
+canvas = tk.Canvas(frame,width=150,height=100,bg="lightgray",highlightthickness=1) canvas.grid(row=10, column=1, padx=10, pady=8)
+
+canvas.create_oval(55, 15, 95, 55, fill="white")
+canvas.create_rectangle(40, 55, 110, 90, fill="white")
+
+def submit():
+name = name_entry.get() email = email_entry.get() phone = phone_entry.get()
+address = address_text.get("1.0", tk.END).strip() class_name = class_var.get()
+
+selected = semester_listbox.curselection()
+if selected:
+semester = semester_listbox.get(selected[0]) else:
+semester = "Not Selected" hobbies = []
+if reading_var.get(): hobbies.append("Reading")
+if coding_var.get(): hobbies.append("Coding")
+
+if sports_var.get(): hobbies.append("Sports")
+
+messagebox.showinfo( "Student Information", f"Name: {name}\n" f"Email: {email}\n" f"Phone: {phone}\n" f"Address: {address}\n" f"Class: {class_name}\n" f"Semester: {semester}\n"
+f"Hobbies: {', '.join(hobbies)}")
+
+submit_button = tk.Button(root,text="Submit",command=submit,width=15) submit_button.pack(pady=15)
+
+root.mainloop()
+
+OUTPUT:
+
+        7) Write a code to demonstrate Button Widget in Tkinter:
+
+import tkinter as tk
+from tkinter import messagebox root = tk.Tk()
+root.title("Button Widget") root.geometry("400x250")
+
+def show_message():
+messagebox.showinfo("Message", "Button Clicked Successfully!")
+
+label = tk.Label(root,text="Button Widget Example",font=("Arial", 16, "bold")) label.pack(pady=30)
+
+button = tk.Button(root,text="Click Me",command=show_message,width=15,height=2) button.pack()
+
+exit_button = tk.Button(root,text="Exit",command=root.destroy,width=15) exit_button.pack(pady=20)
+
+root.mainloop()
+
+OUTPUT:
+
+        8) Write a code to demonstrate Checkbutton Widget.
+
+import tkinter as tk
+from tkinter import messagebox root = tk.Tk()
+root.title("Checkbutton Widget") root.geometry("400x300")
+
+label = tk.Label(root,text="Select Your Hobbies",font=("Arial", 16, "bold")) label.pack(pady=20)
+
+reading = tk.BooleanVar() coding = tk.BooleanVar() sports = tk.BooleanVar()
+
+tk.Checkbutton(root,text="Reading",variable=reading).pack() tk.Checkbutton(root,text="Coding",variable=coding).pack() tk.Checkbutton(root,text="Sports",variable=sports).pack()
+def show_selection(): hobbies = []
+
+if reading.get(): hobbies.append("Reading")
+
+if coding.get(): hobbies.append("Coding")
+
+if sports.get(): hobbies.append("Sports")
+
+if hobbies:
+messagebox.showinfo("Selected Hobbies","You selected:\n" + "\n".join(hobbies))
+else:
+messagebox.showwarning("Warning","Please select at least one hobby.")
+
+button = tk.Button(root,text="Submit",command=show_selection) button.pack(pady=20)
+
+root.mainloop()
+OUTPUT:
+
+        9) Write a code to demonstrate Entry Widget.
+
+import tkinter as tk root = tk.Tk()
+root.title("Entry Widget") root.geometry("400x250")
+
+heading = tk.Label(root,text="Entry Widget Example",font=("Arial", 16, "bold")) heading.pack(pady=20)
+
+name_label = tk.Label(root, text="Enter Your Name:") name_label.pack()
+
+name_entry = tk.Entry(root, width=30) name_entry.pack(pady=10)
+
+def show_name():
+name = name_entry.get() result_label.config(text="Hello " + name)
+
+button = tk.Button(root,text="Submit",command=show_name) button.pack(pady=10)
+
+result_label = tk.Label(root, text="") result_label.pack(pady=10)
+
+root.mainloop()
+
+OUTPUT:
+
+        10) Write a code to demonstrate Frame Widget.
+
+import tkinter as tk root = tk.Tk()
+root.title("Frame Widget") root.geometry("500x300")
+
+heading = tk.Label(root,text="Frame Widget Example",font=("Arial", 16, "bold"))
+heading.pack(pady=15)
+
+frame1 = tk.Frame(root,width=200,height=150,relief="solid",borderwidth=2) frame1.pack(side="left", padx=30, pady=20)
+
+tk.Label(frame1,text="Frame 1").pack(pady=20) tk.Button(frame1,text="Button 1").pack()
+frame2 = tk.Frame(root,width=200,height=150,relief="solid",borderwidth=2) frame2.pack(side="right", padx=30, pady=20)
+
+tk.Label(frame2,text="Frame 2").pack(pady=20) tk.Button(frame2,text="Button 2").pack() root.mainloop()
+OUTPUT:
+
+        11) Write a code to demonstrate Label Widget.
+
+import tkinter as tk root = tk.Tk()
+root.title("Label Widget") root.geometry("500x300")
+
+label1 = tk.Label(root,text="Hello, Welcome to Tkinter!") label1.pack(pady=20)
+
+label2 = tk.Label(root,text="Label Widget Example",font=("Arial", 18, "bold")) label2.pack(pady=20)
+
+label3 = tk.Label(root,text="This is a Python GUI Application.") label3.pack(pady=20)
+
+root.mainloop()
+
+OUTPUT:
+
+        12) Write a code to demonstrate Listbox Widget
+
+import tkinter as tk
+from tkinter import messagebox root = tk.Tk()
+root.title("Listbox Widget") root.geometry("400x350")
+
+heading = tk.Label(root,text="Listbox Widget Example",font=("Arial", 16, "bold"))
+heading.pack(pady=15)
+
+label = tk.Label(root, text="Select a Semester:") label.pack()
+
+listbox = tk.Listbox(root,height=6,width=25) listbox.pack(pady=10)
+
+semesters = ["Semester 1","Semester 2","Semester 3","Semester 4","Semester 5","Semester 6"]
+
+for semester in semesters: listbox.insert(tk.END, semester)
+
+def show_selection():
+selected = listbox.curselection()
+
+if selected:
+value = listbox.get(selected[0]) messagebox.showinfo("Selection","Selected: " + value)
+else:
+messagebox.showwarning("Warning","Please select a semester.")
+
+button = tk.Button(root,text="Submit",command=show_selection) button.pack(pady=15)
+
+root.mainloop()
+
+OUTPUT:
+
+        13) Write a code to demonstrate Radiobutton Widget in Tkinter.
+
+import tkinter as tk
+from tkinter import messagebox
+
+root = tk.Tk()
+
+root.title("Radiobutton Widget") root.geometry("400x300")
+
+heading = tk.Label(root,text="Radiobutton Widget Example",font=("Arial", 16, "bold"))
+heading.pack(pady=20)
+
+label = tk.Label(root, text="Select Your Gender:") label.pack(pady=10)
+
+gender = tk.StringVar(value="Male")
+
+male_button = tk.Radiobutton(root,text="Male",variable=gender,value="Male") male_button.pack()
+
+female_button = tk.Radiobutton(root,text="Female",variable=gender,value="Female") female_button.pack()
+
+other_button = tk.Radiobutton(root,text="Other",variable=gender,value="Other") other_button.pack()
+
+def show_selection():
+messagebox.showinfo("Selected Gender","You selected: " + gender.get())
+
+button = tk.Button(root,text="Submit",command=show_selection) button.pack(pady=20)
+
+root.mainloop()
+OUTPUT:
+
+        14) Write a code to demonstrate Text Widget in Tkinter.
+
+import tkinter as tk
+from tkinter import messagebox root = tk.Tk()
+root.title("Text Widget") root.geometry("500x350")
+
+heading = tk.Label(root,text="Text Widget Example",font=("Arial", 16, "bold")) heading.pack(pady=15)
+
+label = tk.Label(root, text="Enter Your Address:") label.pack()
+
+text_box = tk.Text(root,width=45,height=8) text_box.pack(pady=10)
+
+def show_text():
+address = text_box.get("1.0", tk.END).strip() messagebox.showinfo("Entered Address",address)
+
+button = tk.Button(root,text="Submit",command=show_text) button.pack(pady=10)
+
+root.mainloop()
+
+OUTPUT:
+
+        15) Write a code to demonstrate Scale Widget in Tkinter.
+
+import tkinter as tk root = tk.Tk()
+root.title("Scale Widget") root.geometry("400x300")
+
+heading = tk.Label(root,text="Scale Widget Example",font=("Arial", 16, "bold")) heading.pack(pady=20)
+
+def update_value(value):
+value_label.config(text="Selected Value: " + str(int(float(value))))
+
+scale = tk.Scale(root,from_=0,to=100,orient=tk.HORIZONTAL,length=250,command= update_value)
+scale.pack(pady=20)
+
+value_label = tk.Label(root,text="Selected Value: 0",font=("Arial", 12)) value_label.pack(pady=10)
+
+root.mainloop()
+
+OUTPUT:
+
+        16) Write a code to demonstrate Toplevel Widget in Tkinter.
+
+import tkinter as tk root = tk.Tk()
+root.title("Toplevel Widget") root.geometry("400x250")
+
+def open_window():
+new_window = tk.Toplevel(root)
+
+new_window.title("New Window") new_window.geometry("300x200")
+
+label = tk.Label(new_window,text="This is a Toplevel Window",font=("Arial", 12))
+label.pack(pady=50)
+
+close_button = tk.Button(new_window,text="Close",command=new_window.destroy)
+close_button.pack()
+
+heading = tk.Label(root,text="Toplevel Widget Example",font=("Arial", 16, "bold"))
+heading.pack(pady=30)
+
+button = tk.Button(root,text="Open New Window",command=open_window) button.pack(pady=20)
+
+root.mainloop()
+
+OUTPUT:
+
+        17) Write a code to demonstrate simple calculations in Tkinter.
+
+import tkinter as tk
+from tkinter import messagebox root = tk.Tk()
+root.title("Simple Calculator") root.geometry("400x350")
+
+def calculate(operation): try:
+num1 = float(entry1.get()) num2 = float(entry2.get())
+
+if operation == "+": result = num1 + num2
+
+elif operation == "-": result = num1 - num2
+
+elif operation == "*": result = num1 * num2
+
+elif operation == "/": if num2 == 0:
+messagebox.showerror("Error","Cannot divide by zero.") return
+
+result = num1 / num2 result_label.config(text="Result: " + str(result))
+except ValueError:
+messagebox.showerror("Error","Please enter valid numbers.")
+
+heading = tk.Label(root,text="Simple Calculator",font=("Arial", 18, "bold")) heading.pack(pady=15)
+
+label1 = tk.Label(root, text="Enter First Number:") label1.pack()
+
+entry1 = tk.Entry(root, width=25) entry1.pack(pady=5)
+
+label2 = tk.Label(root, text="Enter Second Number:") label2.pack()
+
+entry2 = tk.Entry(root, width=25) entry2.pack(pady=5)
+
+button_frame = tk.Frame(root) button_frame.pack(pady=15)
+
+tk.Button(button_frame,text="+",width=5,command=lambda: calculate("+")).grid(row=0, column=0, padx=5)
+
+tk.Button(button_frame,text="-",width=5,command=lambda: calculate("-")).grid(row=0, column=1, padx=5)
+
+tk.Button(button_frame,text="*",width=5,command=lambda: calculate("*")).grid(row=0, column=2, padx=5)
+
+tk.Button(button_frame,text="/",width=5,command=lambda: calculate("/")).grid(row=0, column=3, padx=5)
+
+result_label = tk.Label(root,text="Result: ",font=("Arial", 14, "bold")) result_label.pack(pady=15)
+
+root.mainloop()
+
+OUTPUT:
+
+    1) Tkinter form with CREATE,READ, UPDATE, DELETE Operation (Student Details).
+
+import tkinter as tk
+from tkinter import ttk, messagebox import sqlite3
+import re
+
+conn = sqlite3.connect("student.db") cursor = conn.cursor()
+
+cursor.execute("""CREATE TABLE IF NOT EXISTS students (id INTEGER PRIMARY KEY,name TEXT NOT NULL,email TEXT NOT NULL,phone TEXT NOT NULL,marks INTEGER NOT NULL)""")
+conn.commit()
+
+def validate_data():
+
+student_id = entry_id.get().strip() name = entry_name.get().strip() email = entry_email.get().strip() phone = entry_phone.get().strip() marks = entry_marks.get().strip()
+
+
+"":
+if student_id == "" or name == "" or email == "" or phone == "" or marks ==
+
+messagebox.showerror("Validation Error", "All fields are required") return False
+
+if not student_id.isdigit():
+messagebox.showerror("Validation Error", "Student ID must contain only numbers")
+return False
+
+if not re.fullmatch(r"[A-Za-z ]+", name): messagebox.showerror("Validation Error", "Name must contain only
+alphabets")
+return False
+email_pattern = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" if not re.fullmatch(email_pattern, email):
+messagebox.showerror("Validation Error", "Enter a valid email address")
+return False
+
+if not phone.isdigit():
+messagebox.showerror("Validation Error", "Phone must contain only numbers")
+return False
+if len(phone) != 10:
+messagebox.showerror("Validation Error","Phone number must contain exactly 10 digits")
+return False
+
+if not marks.isdigit():
+messagebox.showerror("Validation Error", "Marks must be a number") return False
+
+marks_value = int(marks)
+
+if marks_value < 0 or marks_value > 100: messagebox.showerror("Validation Error","Marks must be between 0 and
+100")
+return False return True
+
+def add_student():
+
+if not validate_data(): return
+
+student_id = int(entry_id.get()) name = entry_name.get().strip() email = entry_email.get().strip() phone = entry_phone.get().strip() marks = int(entry_marks.get())
+
+try:
+
+cursor.execute("""INSERT INTO students VALUES (?, ?, ?, ?, ?)""", (student_id, name, email, phone, marks))
+
+conn.commit()
+messagebox.showinfo("Success","Student added successfully") clear_fields()
+display_students()
+
+except sqlite3.IntegrityError: messagebox.showerror("Error","Student ID already exists")
+def display_students():
+
+for item in table.get_children(): table.delete(item)
+
+cursor.execute("SELECT * FROM students") records = cursor.fetchall()
+for record in records:
+table.insert("", tk.END, values=record)
+
+
+def select_student(event): selected = table.focus()
+if selected == "": return
+
+data = table.item(selected, "values") clear_fields()
+entry_id.insert(0, data[0]) entry_name.insert(0, data[1]) entry_email.insert(0, data[2]) entry_phone.insert(0, data[3]) entry_marks.insert(0, data[4])
+
+
+def update_student():
+
+if not validate_data(): return
+
+student_id = int(entry_id.get()) name = entry_name.get().strip() email = entry_email.get().strip() phone = entry_phone.get().strip() marks = int(entry_marks.get())
+
+cursor.execute("""UPDATE students SET name = ?,email = ?,phone
+= ?,marks = ? WHERE id = ?""", (name, email, phone, marks, student_id)) conn.commit()
+
+if cursor.rowcount == 0: messagebox.showerror("Error","Student ID not found") return
+messagebox.showinfo("Success","Student updated successfully")
+clear_fields() display_students()
+
+def delete_student():
+student_id = entry_id.get().strip() if student_id == "":
+messagebox.showerror("Error","Please enter Student ID") return
+
+if not student_id.isdigit():
+messagebox.showerror("Error","Student ID must contain only numbers") return
+
+student_id = int(student_id)
+
+cursor.execute("DELETE FROM students WHERE id = ?",(student_id,)) conn.commit()
+if cursor.rowcount == 0: messagebox.showerror("Error","Student ID not found") return
+messagebox.showinfo("Success","Student deleted successfully")
+
+clear_fields() display_students()
+
+
+def clear_fields():
+
+entry_id.delete(0, tk.END) entry_name.delete(0, tk.END) entry_email.delete(0, tk.END) entry_phone.delete(0, tk.END) entry_marks.delete(0, tk.END)
+
+
+root = tk.Tk()
+
+root.title("Student Management System") root.geometry("850x650") root.resizable(False, False)
+title = tk.Label(root,text="STUDENT MANAGEMENT SYSTEM",font=("Arial", 22, "bold"))
+title.pack(pady=15) main_frame = tk.Frame(root)
+main_frame.pack(padx=20, pady=10)
+
+
+form_frame = tk.LabelFrame(main_frame,text="Student Information",font=("Arial", 12, "bold"),padx=20,pady=15)
+
+form_frame.grid(row=0, column=0, padx=10)
+
+tk.Label(form_frame,text="Student ID",font=("Arial", 11)).grid(row=0, column=0, padx=10, pady=8, sticky="w")
+
+entry_id = tk.Entry(form_frame,width=30) entry_id.grid(row=0, column=1, padx=10, pady=8)
+tk.Label(form_frame,text="Student Name",font=("Arial", 11)).grid(row=1, column=0, padx=10, pady=8, sticky="w")
+
+entry_name = tk.Entry(form_frame,width=30) entry_name.grid(row=1, column=1, padx=10, pady=8)
+tk.Label(form_frame,text="Email",font=("Arial", 11)).grid(row=2, column=0, padx=10, pady=8, sticky="w")
+
+entry_email = tk.Entry(form_frame,width=30) entry_email.grid(row=2, column=1, padx=10, pady=8)
+
+tk.Label(form_frame,text="Phone",font=("Arial", 11)).grid(row=3, column=0, padx=10, pady=8, sticky="w")
+
+entry_phone = tk.Entry(form_frame,width=30) entry_phone.grid(row=3, column=1, padx=10, pady=8)
+
+tk.Label(form_frame,text="Marks",font=("Arial", 11)).grid(row=4, column=0, padx=10, pady=8, sticky="w")
+
+entry_marks = tk.Entry(form_frame,width=30) entry_marks.grid(row=4, column=1, padx=10, pady=8)
+button_frame = tk.Frame(root) button_frame.pack(pady=15)
+
+
+tk.Button(button_frame,text="CREATE",width=12,command=add_student).gri d(row=0, column=0, padx=5)
+
+tk.Button(button_frame,text="READ",width=12,command=display_students).g rid(row=0, column=1, padx=5)
+
+tk.Button(button_frame,text="UPDATE",width=12,command=update_student). grid(row=0, column=2, padx=5)
+
+tk.Button(button_frame,text="DELETE",width=12,command=delete_student).g rid(row=0, column=3, padx=5)
+
+table_frame = tk.LabelFrame(root,text="Student Records",font=("Arial", 12, "bold"))
+
+table_frame.pack(padx=20,pady=10,fill="both",expand=True) columns = ("ID","Name","Email","Phone","Marks")
+table = ttk.Treeview(table_frame,columns=columns,show="headings",height=10)
+
+for column in columns: table.heading(column, text=column)
+
+table.column("ID", width=70) table.column("Name", width=150) table.column("Email", width=220) table.column("Phone", width=130) table.column("Marks", width=80)
+
+
+table.pack(padx=10,pady=10,fill="both",expand=True) table.bind("<ButtonRelease-1>",select_student)
+
+display_students() root.mainloop()
+
+conn.close()
+OUTPUT:
+
+    2) Tkinter form with CREATE,READ, UPDATE, DELETE Operation (Member Details).
+import tkinter as tk
+from tkinter import ttk, messagebox import sqlite3
+import re
+
+conn = sqlite3.connect("member.db") cursor = conn.cursor()
+
+cursor.execute("""CREATE TABLE IF NOT EXISTS members (id INTEGER PRIMARY KEY,name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT NOT NULL,membership TEXT NOT NULL)""")
+conn.commit()
+
+def validate_data():
+
+member_id = entry_id.get().strip() name = entry_name.get().strip() email = entry_email.get().strip() phone = entry_phone.get().strip() membership = membership_var.get()
+
+if member_id == "" or name == "" or email == "" or phone == "": messagebox.showerror("Validation Error","All fields are required") return False
+
+if membership == "Select Membership": messagebox.showerror("Validation Error","Please select membership
+type")
+return False
+
+if not member_id.isdigit():
+messagebox.showerror("Validation Error","Member ID must contain only numbers")
+return False
+
+if not re.fullmatch(r"[A-Za-z ]+", name): messagebox.showerror("Validation Error","Name must contain only
+alphabets")
+return False
+email_pattern = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" if not re.fullmatch(email_pattern, email):
+messagebox.showerror("Validation Error","Enter a valid email address")
+return False
+
+if not phone.isdigit():
+messagebox.showerror("Validation Error","Phone must contain only numbers")
+return False
+
+if len(phone) != 10:
+messagebox.showerror("Validation Error","Phone number must contain exactly 10 digits")
+return False return True
+def add_member():
+
+if not validate_data(): return
+
+member_id = int(entry_id.get()) name = entry_name.get().strip() email = entry_email.get().strip() phone = entry_phone.get().strip() membership = membership_var.get()
+
+try:
+
+cursor.execute("""INSERT INTO members VALUES (?, ?, ?, ?, ?)""", (member_id,name,email,phone,membership))
+conn.commit()
+messagebox.showinfo("Success","Member added successfully") clear_fields()
+display_members()
+
+except sqlite3.IntegrityError: messagebox.showerror("Error","Member ID already exists")
+def display_members():
+
+for item in table.get_children(): table.delete(item)
+
+cursor.execute("SELECT * FROM members") records = cursor.fetchall()
+for record in records: table.insert("",tk.END,values=record)
+
+def select_member(event):
+selected = table.focus() if selected == "":
+return
+
+data = table.item(selected,"values") clear_fields()
+entry_id.insert(0, data[0]) entry_name.insert(0, data[1]) entry_email.insert(0, data[2]) entry_phone.insert(0, data[3])
+
+membership_var.set(data[4]) def update_member():
+if not validate_data(): return
+
+member_id = int(entry_id.get()) name = entry_name.get().strip() email = entry_email.get().strip() phone = entry_phone.get().strip() membership = membership_var.get()
+
+cursor.execute("""UPDATE members SET name = ?,email = ?,phone
+= ?,membership = ? WHERE id = ?""", (name,email,phone,membership,member_id))
+conn.commit()
+
+if cursor.rowcount == 0: messagebox.showerror("Error","Member ID not found") return
+messagebox.showinfo("Success","Member updated successfully")
+
+clear_fields() display_members()
+
+def delete_member():
+member_id = entry_id.get().strip() if member_id == "":
+messagebox.showerror("Error","Please enter Member ID")
+return
+
+if not member_id.isdigit():
+messagebox.showerror("Error","Member ID must contain only numbers") return
+
+member_id = int(member_id)
+
+cursor.execute("DELETE FROM members WHERE id = ?",(member_id,)) conn.commit()
+if cursor.rowcount == 0: messagebox.showerror("Error","Member ID not found") return
+messagebox.showinfo("Success","Member deleted successfully")
+
+clear_fields() display_members()
+
+def clear_fields():
+
+entry_id.delete(0, tk.END) entry_name.delete(0, tk.END) entry_email.delete(0, tk.END) entry_phone.delete(0, tk.END)
+
+membership_var.set("Select Membership") root = tk.Tk()
+root.title("Member Management System") root.geometry("900x650")
+
+root.resizable(False, False)
+
+header = tk.Frame(root,padx=20,pady=20) header.pack(fill="x")
+tk.Label(header,text="MEMBER MANAGEMENT",font=("Arial", 24, "bold")).pack()
+tk.Label(header,text="Create • Read • Update • Delete",font=("Arial", 11)).pack(pady=5)
+
+form_frame = tk.Frame(root)
+
+form_frame.pack(padx=30,pady=10) left_frame = tk.Frame(form_frame) left_frame.grid(row=0,column=0,padx=30)
+tk.Label(left_frame,text="Member ID",font=("Arial", 11)).pack(anchor="w") entry_id = tk.Entry(left_frame,width=32)
+entry_id.pack(pady=(3, 12))
+
+tk.Label(left_frame,text="Member Name",font=("Arial", 11)).pack(anchor="w") entry_name = tk.Entry(left_frame,width=32)
+entry_name.pack(pady=(3, 12)) tk.Label(left_frame,text="Email",font=("Arial", 11)).pack(anchor="w") entry_email = tk.Entry(left_frame,width=32) entry_email.pack(pady=(3, 12))
+right_frame = tk.Frame(form_frame) right_frame.grid(row=0,column=1,padx=30) tk.Label(right_frame,text="Phone",font=("Arial", 11)).pack(anchor="w") entry_phone = tk.Entry(right_frame,width=32) entry_phone.pack(pady=(3, 12))
+tk.Label(right_frame,text="Membership Type",font=("Arial", 11)).pack(anchor="w")
+
+membership_var = tk.StringVar() membership_var.set("Select Membership")
+
+membership_menu = ttk.Combobox(right_frame,textvariable=membership_var,values=["Basic","Pre mium","Gold","Silver"],state="readonly",width=29)
+
+membership_menu.pack(pady=(3, 12)) button_frame = tk.Frame(root)
+
+button_frame.pack(pady=15)
+
+tk.Button(button_frame,text="CREATE",width=14,command=add_member).gri d(row=0, column=0, padx=5)
+
+tk.Button(button_frame,text="READ",width=14,command=display_members). grid(row=0, column=1, padx=5)
+
+tk.Button(button_frame,text="UPDATE",width=14,command=update_member)
+.grid(row=0, column=2, padx=5)
+
+tk.Button(button_frame,text="DELETE",width=14,command=delete_member). grid(row=0, column=3, padx=5)
+
+table_frame = tk.LabelFrame(root,text="Member Records",font=("Arial", 12, "bold"))
+table_frame.pack(padx=30,pady=10,fill="both",expand=True) columns = ("ID","Name","Email","Phone","Membership") table =
+ttk.Treeview(table_frame,columns=columns,show="headings",height=9)
+
+table.heading("ID", text="Member ID") table.heading("Name", text="Member Name") table.heading("Email", text="Email") table.heading("Phone", text="Phone") table.heading("Membership", text="Membership")
+
+
+table.column("ID", width=90) table.column("Name", width=160) table.column("Email", width=220) table.column("Phone", width=140) table.column("Membership", width=130)
+
+
+table.pack(padx=10,pady=10,fill="both",expand=True) table.bind("<ButtonRelease-1>",select_member) display_members()
+root.mainloop() conn.close()
+OUTPUT:
+
+    3) Tkinter form with CREATE,READ, UPDATE, DELETE Operation (Patient Details).
+
+import tkinter as tk
+from tkinter import ttk, messagebox import sqlite3
+import re
+
+conn = sqlite3.connect("patient.db") cursor = conn.cursor()
+
+cursor.execute("""CREATE TABLE IF NOT EXISTS patients (id INTEGER PRIMARY KEY,name TEXT NOT NULL,age INTEGER NOT NULL,gender TEXT NOT NULL,disease TEXT NOT NULL,phone TEXT NOT NULL)""")
+
+conn.commit()
+
+def validate_data():
+
+patient_id = entry_id.get().strip() name = entry_name.get().strip() age = entry_age.get().strip() gender = gender_var.get()
+disease = entry_disease.get().strip() phone = entry_phone.get().strip()
+
+if (patient_id == "" or name == "" or age == "" or disease == "" or phone == ""):
+
+messagebox.showerror("Validation Error","All fields are required") return False
+
+if not patient_id.isdigit():
+
+messagebox.showerror("Validation Error","Patient ID must contain only numbers")
+return False
+if not re.fullmatch(r"[A-Za-z ]+", name): messagebox.showerror("Validation Error","Patient name must contain
+only alphabets")
+return False
+
+if not age.isdigit():
+
+messagebox.showerror("Validation Error","Age must be a number") return False
+
+age_value = int(age)
+
+if age_value < 1 or age_value > 120:
+
+messagebox.showerror("Validation Error","Age must be between 1 and 120")
+return False
+
+if gender == "Select Gender":
+
+messagebox.showerror("Validation Error","Please select gender") return False
+if not re.fullmatch(r"[A-Za-z ]+", disease): messagebox.showerror("Validation Error","Disease must contain only
+alphabets")
+return False
+
+if not phone.isdigit():
+
+messagebox.showerror("Validation Error","Phone must contain only numbers")
+return False
+
+if len(phone) != 10:
+
+messagebox.showerror("Validation Error","Phone number must contain exactly 10 digits")
+return False return True
+def add_patient():
+
+if not validate_data(): return
+
+patient_id = int(entry_id.get()) name = entry_name.get().strip() age = int(entry_age.get()) gender = gender_var.get()
+disease = entry_disease.get().strip() phone = entry_phone.get().strip()
+
+try:
+
+cursor.execute("""INSERT INTO patients VALUES (?, ?, ?, ?, ?, ?)""", (patient_id,name,age,gender,disease,phone))
+
+conn.commit()
+messagebox.showinfo("Success","Patient added successfully") clear_fields()
+display_patients()
+
+except sqlite3.IntegrityError: messagebox.showerror("Error","Patient ID already exists")
+def display_patients():
+
+# Clear old records
+for item in table.get_children(): table.delete(item)
+
+cursor.execute("SELECT * FROM patients") records = cursor.fetchall()
+for record in records: table.insert("",tk.END,values=record)
+def select_patient(event): selected = table.focus()
+if selected == "": return
+
+data = table.item(selected,"values") clear_fields()
+entry_id.insert(0, data[0]) entry_name.insert(0, data[1]) entry_age.insert(0, data[2])
+
+gender_var.set(data[3])
+
+entry_disease.insert(0, data[4]) entry_phone.insert(0, data[5])
+
+def update_patient():
+
+if not validate_data(): return
+
+patient_id = int(entry_id.get())
+name = entry_name.get().strip() age = int(entry_age.get()) gender = gender_var.get()
+disease = entry_disease.get().strip() phone = entry_phone.get().strip()
+
+cursor.execute("""UPDATE patients SET name = ?,age = ?,gender
+= ?,disease = ?,phone = ? WHERE id = ?""", (name,age,gender,disease,phone,patient_id))
+
+conn.commit()
+
+if cursor.rowcount == 0:
+
+messagebox.showerror("Error","Patient ID not found") return
+messagebox.showinfo("Success","Patient updated successfully") clear_fields()
+display_patients()
+
+def delete_patient():
+
+patient_id = entry_id.get().strip() if patient_id == "":
+messagebox.showerror("Error","Please enter Patient ID") return
+
+if not patient_id.isdigit():
+
+messagebox.showerror("Error","Patient ID must contain only numbers") return
+
+patient_id = int(patient_id)
+
+cursor.execute("DELETE FROM patients WHERE id = ?",(patient_id,)) conn.commit()
+if cursor.rowcount == 0:
+
+messagebox.showerror("Error","Patient ID not found") return
+
+messagebox.showinfo("Success","Patient deleted successfully") clear_fields()
+display_patients() def clear_fields():
+entry_id.delete(0, tk.END) entry_name.delete(0, tk.END) entry_age.delete(0, tk.END) entry_disease.delete(0, tk.END) entry_phone.delete(0, tk.END)
+
+gender_var.set("Select Gender") root = tk.Tk()
+root.title("Patient Management System") root.geometry("950x700")
+
+root.resizable(False, False)
+
+tk.Label(root,text="PATIENT MANAGEMENT SYSTEM",font=("Arial", 24, "bold")).pack(pady=15)
+
+tk.Label(root,text="Patient Details",font=("Arial", 12)).pack()
+
+form_frame = tk.LabelFrame(root,text="Patient Information",font=("Arial", 12, "bold"),padx=20,pady=15)
+
+form_frame.pack(padx=30,pady=15,fill="x")
+
+tk.Label(form_frame,text="Patient ID",font=("Arial", 11)).grid(row=0,column=0,padx=15,pady=8,sticky="w")
+
+entry_id = tk.Entry(form_frame,width=28)
+
+entry_id.grid(row=0,column=1,padx=15,pady=8)
+
+tk.Label(form_frame,text="Patient Name",font=("Arial", 11)).grid(row=0,column=2,padx=15,pady=8,sticky="w")
+
+entry_name = tk.Entry(form_frame,width=28)
+
+entry_name.grid(row=0,column=3,padx=15,pady=8)
+
+tk.Label(form_frame,text="Age",font=("Arial", 11)).grid(row=1,column=0,padx=15,pady=8,sticky="w")
+
+entry_age = tk.Entry(form_frame,width=28) entry_age.grid(row=1,column=1,padx=15,pady=8)
+tk.Label(form_frame,text="Gender",font=("Arial", 11)).grid(row=1,column=2,padx=15,pady=8,sticky="w")
+gender_var = tk.StringVar() gender_var.set("Select Gender") gender_menu =
+ttk.Combobox(form_frame,textvariable=gender_var,values=["Male","Female","
+Other"],state="readonly",width=26) gender_menu.grid(row=1,column=3,padx=15,pady=8)
+tk.Label(form_frame,text="Disease",font=("Arial", 11)).grid(row=2,column=0,padx=15,pady=8,sticky="w")
+
+entry_disease = tk.Entry(form_frame,width=28)
+
+entry_disease.grid(row=2,column=1,padx=15,pady=8)
+
+tk.Label(form_frame,text="Phone",font=("Arial", 11)).grid(row=2,column=2,padx=15,pady=8,sticky="w")
+
+entry_phone = tk.Entry(form_frame,width=28) entry_phone.grid(row=2,column=3,padx=15,pady=8) button_frame = tk.Frame(root) button_frame.pack(pady=10)
+tk.Button(button_frame,text="CREATE",width=14,command=add_patient).grid (row=0,column=0,padx=6)
+
+tk.Button(button_frame,text="READ",width=14,command=display_patients).gri d(row=0,column=1,padx=6)
+
+tk.Button(button_frame,text="UPDATE",width=14,command=update_patient). grid(row=0,column=2,padx=6)
+
+tk.Button(button_frame,text="DELETE",width=14,command=delete_patient).gr id(row=0,column=3,padx=6)
+
+table_frame = tk.LabelFrame(root,text="Patient Records",font=("Arial", 12, "bold"))
+
+table_frame.pack(padx=30,pady=10,fill="both",expand=True) columns = ("ID","Name","Age","Gender","Disease","Phone")
+table = ttk.Treeview(table_frame,columns=columns,show="headings",height=10)
+
+table.heading("ID", text="Patient ID") table.heading("Name", text="Patient Name") table.heading("Age", text="Age") table.heading("Gender", text="Gender") table.heading("Disease", text="Disease") table.heading("Phone", text="Phone")
+table.column("ID", width=90) table.column("Name", width=170) table.column("Age", width=70) table.column("Gender", width=100) table.column("Disease", width=180) table.column("Phone", width=140)
+
+table.pack(padx=10,pady=10,fill="both",expand=True) table.bind("<ButtonRelease-1>",select_patient) display_patients()
+root.mainloop() conn.close()
+OUTPUT:
+
+    4) Tkinter form with CREATE,READ, UPDATE, DELETE Operation (emp Details).
+
+import tkinter as tk
+from tkinter import ttk, messagebox import sqlite3
+import re
+
+conn = sqlite3.connect("employee.db") cursor = conn.cursor()
+
+cursor.execute("""CREATE TABLE IF NOT EXISTS employees (id INTEGER PRIMARY KEY,name TEXT NOT NULL,email TEXT NOT NULL,phone TEXT
+NOT NULL,department TEXT NOT NULL,salary REAL NOT NULL)""") conn.commit()
+def validate_data():
+
+employee_id = entry_id.get().strip() name = entry_name.get().strip() email = entry_email.get().strip() phone = entry_phone.get().strip() department = department_var.get() salary = entry_salary.get().strip()
+
+if (employee_id == "" or name == "" or email == "" or phone == "" or salary == ""):
+
+messagebox.showerror("Validation Error","All fields are required") return False
+
+if not employee_id.isdigit():
+
+messagebox.showerror("Validation Error","Employee ID must contain only numbers")
+return False
+
+if not re.fullmatch(r"[A-Za-z ]+", name):
+
+messagebox.showerror("Validation Error","Employee name must contain only alphabets")
+return False
+
+email_pattern = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$" if not re.fullmatch(email_pattern, email):
+messagebox.showerror("Validation Error","Enter a valid email address") return False
+
+if not phone.isdigit():
+
+messagebox.showerror("Validation Error","Phone must contain only numbers")
+return False
+
+if len(phone) != 10:
+
+messagebox.showerror("Validation Error","Phone number must contain exactly 10 digits")
+
+if department == "Select Department":
+
+messagebox.showerror("Validation Error","Please select department") return False
+
+try:
+salary_value = float(salary) if salary_value <= 0:
+messagebox.showerror("Validation Error","Salary must be greater than 0")
+return False except ValueError:
+messagebox.showerror("Validation Error","Salary must be a number") return False
+
+return True
+
+def add_employee():
+
+if not validate_data(): return
+
+employee_id = int(entry_id.get()) name = entry_name.get().strip() email = entry_email.get().strip() phone = entry_phone.get().strip() department = department_var.get() salary = float(entry_salary.get())
+
+try:
+
+cursor.execute("""INSERT INTO employees VALUES (?, ?, ?, ?, ?, ?)""", (employee_id,name,email,phone,department,salary))
+conn.commit()
+messagebox.showinfo("Success","Employee added successfully") clear_fields()
+display_employees() except sqlite3.IntegrityError:
+messagebox.showerror("Error","Employee ID already exists") def display_employees():
+for item in table.get_children(): table.delete(item)
+cursor.execute("SELECT * FROM employees") records = cursor.fetchall()
+for record in records: table.insert("",tk.END,values=record)
+def select_employee(event): selected = table.focus()
+if selected == "": return
+
+data = table.item(selected,"values") clear_fields()
+entry_id.insert(0, data[0]) entry_name.insert(0, data[1]) entry_email.insert(0, data[2]) entry_phone.insert(0, data[3])
+
+department_var.set(data[4]) entry_salary.insert(0, data[5])
+def update_employee():
+
+if not validate_data(): return
+
+employee_id = int(entry_id.get()) name = entry_name.get().strip()
+email = entry_email.get().strip() phone = entry_phone.get().strip() department = department_var.get() salary = float(entry_salary.get())
+
+cursor.execute("""UPDATE employees SET name = ?,email = ?,phone
+= ?,department = ?,salary = ? WHERE id = ?""", (name,email,phone,department,salary,employee_id))
+
+conn.commit()
+
+if cursor.rowcount == 0: messagebox.showerror("Error","Employee ID not found") return
+messagebox.showinfo("Success","Employee updated successfully")
+
+clear_fields() display_employees()
+
+def delete_employee():
+
+employee_id = entry_id.get().strip() if employee_id == "":
+messagebox.showerror("Error","Please enter Employee ID") return
+if not employee_id.isdigit():
+
+messagebox.showerror("Error","Employee ID must contain only numbers")
+
+return
+
+employee_id = int(employee_id)
+
+cursor.execute("DELETE FROM employees WHERE id = ?",(employee_id,)) conn.commit()
+if cursor.rowcount == 0: messagebox.showerror("Error","Employee ID not found") return
+messagebox.showinfo("Success","Employee deleted successfully") clear_fields()
+display_employees() def clear_fields():
+entry_id.delete(0, tk.END) entry_name.delete(0, tk.END) entry_email.delete(0, tk.END) entry_phone.delete(0, tk.END) entry_salary.delete(0, tk.END)
+
+department_var.set("Select Department") root = tk.Tk()
+root.title("Employee Management System") root.geometry("1000x720")
+
+root.resizable(False, False) title_frame = tk.Frame(root) title_frame.pack(fill="x",pady=15)
+tk.Label(title_frame,text="EMPLOYEE MANAGEMENT SYSTEM",font=("Arial", 24, "bold")).pack()
+
+tk.Label(title_frame,text="Employee CRUD Operations",font=("Arial", 11)).pack(pady=5)
+
+form_frame = tk.LabelFrame(root,text="Employee Information",font=("Arial", 12, "bold"),padx=25,pady=15)
+
+form_frame.pack(padx=30,pady=10)
+
+tk.Label(form_frame,text="Employee ID",font=("Arial", 11)).grid(row=0,column=0,padx=15,pady=8,sticky="w")
+
+entry_id = tk.Entry(form_frame,width=30) entry_id.grid(row=0,column=1,padx=15,pady=8)
+tk.Label(form_frame,text="Employee Name",font=("Arial", 11)).grid(row=0,column=2,padx=15,pady=8,sticky="w")
+
+entry_name = tk.Entry(form_frame,width=30)
+entry_name.grid(row=0,column=3,padx=15,pady=8)
+
+tk.Label(form_frame,text="Email",font=("Arial", 11)).grid(row=1,column=0,padx=15,pady=8,sticky="w")
+
+entry_email = tk.Entry(form_frame,width=30) entry_email.grid(row=1,column=1,padx=15,pady=8)
+tk.Label(form_frame,text="Phone",font=("Arial", 11)).grid(row=1,column=2,padx=15,pady=8,sticky="w")
+
+entry_phone = tk.Entry(form_frame,width=30)
+
+entry_phone.grid(row=1,column=3,padx=15,pady=8)
+
+tk.Label(form_frame,text="Department",font=("Arial", 11)).grid(row=2,column=0,padx=15,pady=8,sticky="w")
+department_var = tk.StringVar() department_var.set("Select Department") department_menu =
+ttk.Combobox(form_frame,textvariable=department_var,values=["IT","HR","Fi
+nance","Marketing","Sales"],state="readonly",width=27) department_menu.grid(row=2,column=1,padx=15,pady=8)
+tk.Label(form_frame,text="Salary",font=("Arial", 11)).grid(row=2,column=2,padx=15,pady=8,sticky="w")
+
+entry_salary = tk.Entry(form_frame,width=30) entry_salary.grid(row=2,column=3,padx=15,pady=8) button_frame = tk.Frame(root) button_frame.pack(pady=12)
+tk.Button(button_frame,text="CREATE",width=14,command=add_employee). grid(row=0,column=0,padx=6)
+
+tk.Button(button_frame,text="READ",width=14,command=display_employees)
+.grid(row=0,column=1,padx=6)
+
+tk.Button(button_frame,text="UPDATE",width=14,command=update_employe e).grid(row=0,column=2,padx=6)
+tk.Button(button_frame,text="DELETE",width=14,command=delete_employee
+).grid(row=0,column=3,padx=6)
+
+table_frame = tk.LabelFrame(root,text="Employee Records",font=("Arial", 12, "bold"))
+
+table_frame.pack(padx=30,pady=10,fill="both",expand=True)
+columns = ("ID","Name","Email","Phone","Department","Salary") table =
+ttk.Treeview(table_frame,columns=columns,show="headings",height=10) table.heading("ID",text="Employee ID") table.heading("Name",text="Employee Name") table.heading("Email",text="Email")
+table.heading("Phone",text="Phone") table.heading("Department",text="Department") table.heading("Salary",text="Salary") table.column("ID",width=90) table.column("Name",width=170) table.column("Email",width=220) table.column("Phone",width=140) table.column("Department",width=130) table.column("Salary",width=120) table.pack(padx=10,pady=10,fill="both",expand=True) table.bind("<ButtonRelease-1>",select_employee) display_employees()
+root.mainloop() conn.close()
+OUTPUT:
+

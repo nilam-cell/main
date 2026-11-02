@@ -1,0 +1,407 @@
+    1. Create Database and Insert Records
+    2. Backup Complete Database (.dump equivalent)
+    3. Backup Only Database Structure
+    4. Backup Only Data
+    5. Restore Database from Backup
+    6. Export Complete Database to Another File
+    7. Display All Tables
+    8. Display Database Schema
+    9. Count Total Records
+    10. Complete Database Maintenance Utility
+import sqlite3 #
+# Database name #
+DB_NAME = "college.db"
+
+#
+# Function: Connect to database
+# This function is used whenever we need college.db #
+def connect_database():
+conn = sqlite3.connect(DB_NAME) return conn
+# ================================================= # 1. CREATE DATABASE AND INSERT RECORDS
+# =================================================
+def create_database():
+# Connect to database conn = connect_database()
+
+# Cursor is used to execute SQL queries cursor = conn.cursor()
+# Create students table cursor.execute("""
+CREATE TABLE IF NOT EXISTS students ( id INTEGER PRIMARY KEY,
+name TEXT, course TEXT, marks INTEGER
+) """)
+# Records to insert
+students = [
+(1, "Rahul", "MSc IT", 85),
+(2, "Amit", "MSc CS", 90),
+(3, "Priya", "MSc IT", 88)
+]
+# Insert multiple records cursor.executemany("""
+INSERT OR IGNORE INTO students VALUES (?, ?, ?, ?)
+""", students)
+# Save changes conn.commit()
+# Close database conn.close()
+
+print("Database created and records inserted successfully.")
+# ================================================= # 2. BACKUP COMPLETE DATABASE
+# Structure + Data
+# =================================================
+def complete_backup():
+# Open college.db
+conn = connect_database()
+
+# Create SQL backup file
+with open("complete_backup.sql", "w") as file:
+# iterdump() creates complete SQL dump for line in conn.iterdump():
+file.write(line + "\n") conn.close()
+print("Complete database backup created successfully.")
+
+# ================================================= # 3. BACKUP ONLY DATABASE STRUCTURE
+# Only CREATE TABLE statements
+# =================================================
+def structure_backup():
+conn = connect_database() cursor = conn.cursor()
+
+# Get CREATE TABLE commands
+cursor.execute(""" SELECT sql
+FROM sqlite_master WHERE type='table'
+AND name NOT LIKE 'sqlite_%' """)
+tables = cursor.fetchall() # Write structure into file
+with open("structure_backup.sql", "w") as file:
+for table in tables: file.write(table[0] + ";\n")
+conn.close()
+print("Database structure backup created successfully.")
+
+# ================================================= # 4. BACKUP ONLY DATA
+# Only INSERT statements
+# =================================================
+def data_backup():
+
+conn = connect_database() cursor = conn.cursor()
+# Find all table names cursor.execute(""" SELECT name FROM sqlite_master WHERE type='table'
+AND name NOT LIKE 'sqlite_%' """)
+tables = cursor.fetchall()
+with open("data_backup.sql", "w") as file: # Loop through every table
+for table in tables:
+table_name = table[0]
+
+# Read all records from table cursor.execute(f"SELECT * FROM {table_name}")
+rows = cursor.fetchall()
+# Convert each record into INSERT query for row in rows:
+
+values = []
+for value in row:
+# If value is text
+if isinstance(value, str):
+value = value.replace("'", "''")
+values.append(f"'{value}'")
+# If value is NULL elif value is None:
+values.append("NULL")
+# If value is number else:
+values.append(str(value)) values_text = ", ".join(values)
+file.write(
+f"INSERT INTO {table_name} VALUES ({values_text});\n"
+)
+conn.close()
+print("Data backup created successfully.")
+
+# ================================================= # 5. RESTORE DATABASE FROM BACKUP
+# =================================================
+def restore_database():
+
+# Create/open another database conn = sqlite3.connect("restored.db")
+# Open complete backup file
+with open("complete_backup.sql", "r") as file: sql_script = file.read()
+try:
+
+# Run all SQL commands from backup file conn.executescript(sql_script)
+conn.commit()
+
+print("Database restored successfully.")
+
+except sqlite3.Error as error: print("Restore Error:", error)
+finally:
+conn.close()
+
+# ================================================= # 6. EXPORT COMPLETE DATABASE TO ANOTHER FILE
+# Creates copy of database
+# =================================================
+def export_database():
+# Source database
+source = sqlite3.connect(DB_NAME)
+
+# Destination database
+destination = sqlite3.connect("college_copy.db")
+# Copy complete database source.backup(destination)
+
+source.close() destination.close()
+print("Database exported successfully.")
+
+# ================================================= # 7. DISPLAY ALL TABLES
+# =================================================
+def display_tables():
+
+conn = connect_database() cursor = conn.cursor()
+# Query to find all tables cursor.execute(""" SELECT name
+FROM sqlite_master WHERE type='table'
+AND name NOT LIKE 'sqlite_%' """)
+tables = cursor.fetchall() print("\nTables in Database:") for table in tables:
+print(table[0]) conn.close()
+# ================================================= # 8. DISPLAY DATABASE SCHEMA
+# =================================================
+def display_schema():
+
+conn = connect_database() cursor = conn.cursor()
+# Get table name and CREATE TABLE query cursor.execute("""
+SELECT name, sql FROM sqlite_master WHERE type='table'
+AND name NOT LIKE 'sqlite_%' """)
+schema = cursor.fetchall() print("\nDatabase Schema:") for table_name, sql in schema:
+print("\nTable Name:", table_name) print(sql)
+conn.close()
+# ================================================= # 9. COUNT TOTAL RECORDS
+# =================================================
+def count_records():
+conn = connect_database() cursor = conn.cursor()
+
+# Count records from students table cursor.execute("""
+SELECT COUNT(*)
+FROM students """)
+total = cursor.fetchone()[0] print("\nTotal Records:", total)
+conn.close()
+# ================================================= # 10. COMPLETE DATABASE MAINTENANCE UTILITY
+# Menu-driven program
+# =================================================
+def database_maintenance(): while True:
+print("\n===================================") print("	DATABASE MAINTENANCE MENU") print("===================================")
+print("1. Create Database and Insert Records") print("2. Backup Complete Database")
+print("3. Backup Only Database Structure") print("4. Backup Only Data")
+print("5. Restore Database from Backup") print("6. Export Complete Database") print("7. Display All Tables")
+print("8. Display Database Schema") print("9. Count Total Records") print("10. Exit")
+# Take choice from user
+choice = input("\nEnter your choice: ")
+# Question 1
+if choice == "1": create_database()
+# Question 2
+elif choice == "2": complete_backup()
+# Question 3
+elif choice == "3": structure_backup()
+
+# Question 4
+elif choice == "4": data_backup()
+
+# Question 5
+elif choice == "5": restore_database()
+# Question 6
+elif choice == "6":
+export_database()
+# Question 7
+elif choice == "7": display_tables()
+# Question 8
+elif choice == "8": display_schema()
+# Question 9
+elif choice == "9": count_records()
+
+# Exit program
+elif choice == "10": print("Program closed.") break
+# Wrong input else:
+
+print("Invalid choice. Please enter 1 to 10.")
+#
+# Start the complete program #
+database_maintenance()
+OUTPUT:
+=================================== DATABASE MAINTENANCE MENU
+===================================
+    1. Create Database and Insert Records
+    2. Backup Complete Database
+    3. Backup Only Database Structure
+    4. Backup Only Data
+    5. Restore Database from Backup
+    6. Export Complete Database
+    7. Display All Tables
+    8. Display Database Schema
+    9. Count Total Records
+    10. Exit
+Enter your choice: 1
+Database created and records inserted successfully.
+
+===================================
+DATABASE MAINTENANCE MENU
+===================================
+    1. Create Database and Insert Records
+    2. Backup Complete Database
+    3. Backup Only Database Structure
+    4. Backup Only Data
+    5. Restore Database from Backup
+    6. Export Complete Database
+    7. Display All Tables
+    8. Display Database Schema
+    9. Count Total Records
+    10. Exit
+
+Enter your choice: 2
+Complete database backup created successfully.
+    11. Write a Python program to create a library.db database and dump only the Book table (structure and data) into a SQL file
+import sqlite3
+
+# Step 1: Create / connect to library.db conn = sqlite3.connect("library.db") cursor = conn.cursor()
+
+# Step 2: Create Book table cursor.execute("""
+CREATE TABLE IF NOT EXISTS Book ( book_id INTEGER PRIMARY KEY,
+title TEXT, author TEXT, price REAL
+) """)
+# Step 3: Insert records books = [
+(1, "Python Basics", "John", 450.00),
+(2, "Database System", "Rahul", 550.00),
+(3, "Machine Learning", "Amit", 700.00)
+]
+
+cursor.executemany("""
+INSERT OR IGNORE INTO Book VALUES (?, ?, ?, ?)
+""", books) conn.commit()
+# Step 4: Get ONLY Book table structure cursor.execute("""
+SELECT sql
+FROM sqlite_master WHERE type = 'table' AND name = 'Book' """)
+book_structure = cursor.fetchone()[0] # Step 5: Get ONLY Book table data
+cursor.execute("SELECT * FROM Book") records = cursor.fetchall()
+# Step 6: Write structure + data into SQL file with open("book_backup.sql", "w") as file:
+
+# Write table structure
+file.write(book_structure + ";\n\n")
+# Write table data for row in records:
+values = []
+for value in row:
+
+if isinstance(value, str):
+value = value.replace("'", "''")
+values.append("'" + value + "'")
+
+elif value is None: values.append("NULL")
+else:
+values.append(str(value))
+values_text = ", ".join(values) file.write(
+"INSERT INTO Book VALUES (" +
+values_text + ");\n"
+)
+# Step 7: Close database conn.close()
+
+print("Book table structure and data dumped successfully.")
+OUTPUT: Book table structure and data dumped successfully.
+    12. Write a Python program to export only the structure of the Employee table without its records.
+import sqlite3
+# Step 1: Connect to the database conn = sqlite3.connect("company.db") cursor = conn.cursor()
+# Step 2: Create Employee table cursor.execute("""
+CREATE TABLE IF NOT EXISTS Employee ( emp_id INTEGER PRIMARY KEY,
+name TEXT, department TEXT, salary REAL
+) """)
+# Commit changes conn.commit()
+
+# Step 3: Get ONLY the structure of Employee table cursor.execute("""
+SELECT sql
+FROM sqlite_master WHERE type = 'table' AND name = 'Employee' """)
+employee_structure = cursor.fetchone()[0] # Step 4: Export structure to SQL file
+with open("employee_structure.sql", "w") as file: file.write(employee_structure + ";\n")
+# Step 5: Close database conn.close()
+
+print("Employee table structure exported successfully.")
+OUTPUT:Employee table structure exported successfully.
+    13. Write a Python program using iterdump() to create a complete backup of a SQLite database and restore it into a new database
+import sqlite3
+
+# Step 1: Connect to original database
+conn = sqlite3.connect("company.db") cursor = conn.cursor()
+
+# Step 2: Create a sample Employee table cursor.execute("""
+CREATE TABLE IF NOT EXISTS Employee ( emp_id INTEGER PRIMARY KEY,
+name TEXT, department TEXT, salary REAL
+) """)
+# Step 3: Insert sample records
+employees = [
+(1, "Rahul", "IT", 35000),
+(2, "Amit", "HR", 30000),
+(3, "Priya", "Finance", 40000)
+]
+
+conn.commit()
+# Step 4: Create complete backup using iterdump() with open("company_backup.sql", "w") as file:
+for line in conn.iterdump(): file.write(line + "\n")
+print("Complete backup created successfully.") conn.close()
+# Step 5: Create a NEW database
+
+new_conn = sqlite3.connect("company_restore.db") # Step 6: Read the backup SQL file
+with open("company_backup.sql", "r") as file: backup_sql = file.read()
+# Step 7: Restore backup into new database
+
+new_conn.executescript(backup_sql) new_conn.commit()
+print("Database restored successfully into new database.") # Close new database
+new_conn.close()
+
+OUTPUT: Complete backup created successfully.
+    14. Write a Python program to export the data of Student, Course, and Faculty tables into a single SQL file containing only INSERT statements
+import sqlite3
+
+# Step 1: Connect to database
+conn = sqlite3.connect("college.db") cursor = conn.cursor()
+# Step 2: Create Student table cursor.execute("""
+CREATE TABLE IF NOT EXISTS Student (
+student_id INTEGER PRIMARY KEY, name TEXT,
+course_id INTEGER
+) """)
+# Step 3: Create Course table cursor.execute("""
+CREATE TABLE IF NOT EXISTS Course (
+course_id INTEGER PRIMARY KEY, course_name TEXT
+) """)
+# Step 4: Create Faculty table cursor.execute("""
+CREATE TABLE IF NOT EXISTS Faculty (
+faculty_id INTEGER PRIMARY KEY, name TEXT,
+department TEXT
+) """)
+# Step 5: Insert sample data students = [
+(1, "Rahul", 101),
+(2, "Amit", 102),
+(3, "Priya", 101)
+]
+
+courses = [
+(101, "Computer Science"),
+(102, "Information Technology")
+]
+faculties = [
+(1, "Mr. Patel", "Computer Science"),
+(2, "Ms. Shah", "Information Technology")
+]
+cursor.executemany(
+"INSERT OR IGNORE INTO Student VALUES (?, ?, ?)",
+students
+)
+cursor.executemany(
+"INSERT OR IGNORE INTO Course VALUES (?, ?)",
+courses
+)
+cursor.executemany(
+"INSERT OR IGNORE INTO Faculty VALUES (?, ?, ?)",
+faculties
+)
+conn.commit()
+
+# Step 6: Export ONLY DATA
+tables = ["Student", "Course", "Faculty"] with open("college_data.sql", "w") as file:
+# Process each table for table in tables:
+# Get all records
+cursor.execute(f"SELECT * FROM {table}") records = cursor.fetchall()
+# Convert records into INSERT statements for row in records:
+values = []
+for value in row: # Text value
+if isinstance(value, str):
+value = value.replace("'", "''")
+values.append("'" + value + "'")
+# NULL value
+elif value is None: values.append("NULL")
+
+# Number value else:
+values.append(str(value))
+
+values_text = ", ".join(values)
+# Write INSERT statement file.write(
+f"INSERT INTO {table} VALUES ({values_text});\n"
+)
+# Step 7: Close database conn.close()
+print("Student, Course and Faculty data exported successfully.")
+OUTPUT: Student, Course and Faculty data exported successfully.
